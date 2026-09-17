@@ -229,6 +229,7 @@ tr.ad .name{padding-left:44px}
         <input id="fToken" type="password" autocomplete="off" spellcheck="false" placeholder="วาง token ที่นี่ — เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น">
         <button class="btn" id="btnEye" type="button" title="แสดง/ซ่อน">👁</button>
       </div>
+      <span class="hint" id="tokenInfo"></span>
     </div>
     <div class="field">
       <label for="fAct">Ad account ID</label>
@@ -491,6 +492,37 @@ function parseTrack(){
 }
 const campFilter = ids => JSON.stringify([{field:'campaign.id', operator:'IN', value:ids}]);
 
+/* ---------- token health (debug_token is not subject to the per-ad-account call limit) ---------- */
+let TOKEN_INFO = null;
+async function checkToken(){
+  if(!token){ TOKEN_INFO = null; renderTokenInfo(); return; }
+  try{
+    const j = await gfetch('debug_token', {input_token: token});
+    const d = j.data || {};
+    TOKEN_INFO = {valid: !!d.is_valid, expires: d.expires_at ? d.expires_at*1000 : 0, scopes: d.scopes||[], type: d.type||'', error: d.error ? d.error.message : null};
+  }catch(e){ TOKEN_INFO = {valid:null, error:e.message}; }
+  renderTokenInfo();
+}
+function tokenExpiryText(){
+  const T = TOKEN_INFO; if(!T || T.valid==null) return '';
+  if(!T.valid) return 'token ใช้ไม่ได้แล้ว';
+  if(!T.expires) return 'token ไม่มีวันหมดอายุ';
+  const days = Math.floor((T.expires - Date.now())/864e5);
+  const when = new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short'}).format(new Date(T.expires));
+  return 'token หมดอายุ '+when+(days>=1? ' (อีก '+days+' วัน)' : days>=0 ? ' (วันนี้)' : ' (หมดแล้ว)');
+}
+function renderTokenInfo(){
+  const el = $('#tokenInfo'); const T = TOKEN_INFO;
+  if(!T){ el.textContent=''; clearBanner('tok'); return; }
+  if(T.valid==null){ el.textContent = 'ตรวจสอบ token ไม่ได้: '+(T.error||''); return; }
+  const missing = ['ads_read'].filter(s=>!T.scopes.includes(s));
+  el.textContent = tokenExpiryText() + (T.scopes.length? ' · สิทธิ์: '+T.scopes.join(', ') : '') + (missing.length? ' · ขาดสิทธิ์ '+missing.join(', ') : '');
+  const days = T.expires ? (T.expires - Date.now())/864e5 : Infinity;
+  if(!T.valid) banner('tok','crit','Token ใช้ไม่ได้แล้ว', T.error || 'ขอ token ใหม่แล้ววางใน ⚙ ตั้งค่า ลิงก์ที่แชร์ไว้จะใช้ไม่ได้จนกว่าจะสร้างใหม่');
+  else if(days < 3) banner('tok','warn','Token ใกล้หมดอายุ', tokenExpiryText()+' — ขอ token ใหม่ (หรือขยายอายุใน Access Token Debugger) แล้วสร้างลิงก์แชร์ใหม่');
+  else clearBanner('tok');
+}
+
 /* ---------- results logic ---------- */
 const RESULT_PRIORITY = ['onsite_conversion.messaging_conversation_started_7d','purchase','omni_purchase','lead','onsite_conversion.lead_grouped','link_click','post_engagement','video_view'];
 function resultTypeFor(objective){
@@ -528,6 +560,7 @@ function dailyPreset(){ return (S.preset==='today'||S.preset==='yesterday') ? 'l
 async function load(){
   if(!token){ DATA = demoData(); render(); setLive('ok'); schedule(); return; }
   if(busy) return; busy = true; setLive('loading','กำลังโหลด…');
+  if(!TOKEN_INFO) checkToken(); // once per session / per new token; runs alongside the data calls
   try{
     const INS = 'spend,impressions,reach,clicks,inline_link_clicks,ctr,cpm,cpc,frequency,actions';
     const ins = `insights.date_preset(${S.preset}){${INS}}`;
@@ -873,7 +906,7 @@ function syncForm(){
 $('#btnEye').addEventListener('click',()=>{ const i=$('#fToken'); i.type = i.type==='password'?'text':'password'; });
 $('#btnSettings').addEventListener('click',()=>{ S.forceDrawer = !S.forceDrawer || $('#drawer').hidden; $('#drawer').hidden = !S.forceDrawer; if(S.forceDrawer) $('#fToken').focus(); });
 $('#btnClose').addEventListener('click',()=>{ S.forceDrawer=false; $('#drawer').hidden = !!token; });
-$('#btnClear').addEventListener('click',()=>{ token=''; LS.del('mads.token'); LS.del('mads.lastBlob'); $('#fToken').value=''; $('#saveMsg').textContent='ล้าง token แล้ว'; DATA=null; S.forceDrawer=true; LOCKED = isLocked(); clearTimeout(timer); load(); });
+$('#btnClear').addEventListener('click',()=>{ token=''; LS.del('mads.token'); LS.del('mads.lastBlob'); $('#fToken').value=''; $('#saveMsg').textContent='ล้าง token แล้ว'; DATA=null; TOKEN_INFO=null; renderTokenInfo(); S.forceDrawer=true; LOCKED = isLocked(); clearTimeout(timer); load(); });
 window.addEventListener('hashchange', ()=>{ if(isLocked()){ LOCKED = true; DATA = null; clearTimeout(timer); load(); } });
 function shareReady(){
   const pass = $('#fPass').value, msg = $('#shareMsg');
@@ -950,7 +983,7 @@ $('#btnConnect').addEventListener('click',()=>{
   S.ver = $('#fVer').value.trim()||DEFAULTS.ver; if(!/^v/.test(S.ver)) S.ver='v'+S.ver;
   S.interval = +$('#fInterval').value; S.result = $('#fResult').value; S.target = $('#fTarget').value; S.track = $('#fTrack').value.trim();
   LS.set('mads.token', token); saveSettings(); S.forceDrawer=false; $('#saveMsg').textContent = token? 'บันทึกแล้ว กำลังโหลด…' : 'ยังไม่มี token — แสดงข้อมูลตัวอย่าง';
-  DATA=null; clearTimeout(timer); load();
+  DATA=null; TOKEN_INFO=null; backoff=0; clearTimeout(timer); load();
 });
 $('#btnRefresh').addEventListener('click',()=>{ clearTimeout(timer); load(); });
 $('#cPreset').addEventListener('change',e=>{ S.preset=e.target.value; saveSettings(); clearTimeout(timer); DATA_STALE(); load(); });
