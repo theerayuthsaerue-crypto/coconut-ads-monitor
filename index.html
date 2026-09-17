@@ -285,11 +285,14 @@ tr.ad .name{padding-left:44px}
         <button class="btn primary" id="btnShareLink" type="button">สร้างลิงก์แชร์</button>
         <button class="btn" id="btnShare" type="button">หรือสร้างไฟล์</button>
       </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn" id="btnPlainLink" type="button">สร้างลิงก์แบบไม่ต้องใส่รหัส (เปิดแล้วเห็นเลย)</button>
+      </div>
       <div class="row" id="shareOut" hidden>
         <input id="shareLink" type="text" readonly spellcheck="false">
         <button class="btn" id="btnCopyLink" type="button">คัดลอก</button>
       </div>
-      <span class="hint">token ปัจจุบันจะถูกเข้ารหัส (AES-256 + PBKDF2) แล้วแนบท้ายลิงก์หลัง <code>#</code> — ส่วนนี้ไม่ถูกส่งไปเซิร์ฟเวอร์ใด เปิดได้เมื่อใส่รหัสนี้เท่านั้น ส่งลิงก์กับรหัสให้ทีมคนละทาง แนะนำใช้ System User token ที่ไม่หมดอายุ · "สร้างไฟล์" ให้ไฟล์ HTML ที่ฝัง token เข้ารหัสไว้ในตัว สำหรับอัปโหลดเอง</span>
+      <span class="hint"><b>ลิงก์แบบมีรหัส:</b> token ถูกเข้ารหัส (AES-256 + PBKDF2) แล้วแนบท้ายลิงก์หลัง <code>#</code> เปิดได้เมื่อใส่รหัสเท่านั้น · <b>ลิงก์แบบไม่ต้องใส่รหัส:</b> token อยู่ในลิงก์ตรงๆ ใครมีลิงก์ก็เห็นข้อมูลโฆษณาได้ทันที — ส่งเฉพาะคนที่ไว้ใจ ถ้าหลุดให้ยกเลิก token ใน Meta · ส่วนหลัง <code>#</code> ไม่ถูกส่งไปเซิร์ฟเวอร์ใด · ควรใช้ System User token ที่ไม่หมดอายุ</span>
       <span class="hint" id="shareMsg"></span>
     </div>
     <div class="field">
@@ -402,12 +405,25 @@ const collapsed = new Set();
 const LOCK_META = 'mads-locked';
 function hashBlob(){ const m = /[#&]k=([^&]+)/.exec(location.hash||''); return m ? decodeURIComponent(m[1]) : null; }
 function lockedBlob(){ const h = hashBlob(); if(h) return h; const m = document.querySelector('meta[name="'+LOCK_META+'"]'); return m ? m.getAttribute('content') : null; }
-// locked when a sealed token is present and this browser hasn't unlocked that exact one yet
-function isLocked(){ const b = lockedBlob(); return !!b && (!token || LS.get('mads.lastBlob') !== b); }
-let LOCKED = isLocked();
 const enc = new TextEncoder(), tdec = new TextDecoder();
 const b64 = u8 => btoa(Array.from(u8, c=>String.fromCharCode(c)).join(''));
 const unb64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+function settingsPayload(){ return {token, act:S.act, ver:S.ver, track:S.track, result:S.result, target:S.target, interval:S.interval}; }
+function adoptPayload(p){
+  token = p.token || '';
+  Object.assign(S, {act:p.act||S.act, ver:p.ver||S.ver, track:p.track!=null?p.track:S.track, result:p.result||S.result, target:p.target!=null?p.target:S.target, interval:p.interval!=null?p.interval:S.interval});
+  LS.set('mads.token', token); saveSettings();
+}
+function stripHash(){ try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} }
+// plain (no-passphrase) share link: #t=<base64 json> — adopt it on load, then drop it from the URL bar
+(function adoptPlainLink(){
+  const m = /[#&]t=([^&]+)/.exec(location.hash||''); if(!m) return;
+  try{ const p = JSON.parse(tdec.decode(unb64(decodeURIComponent(m[1])))); if(p && p.token) adoptPayload(p); }catch(e){}
+  stripHash();
+})();
+// locked when a sealed token is present and this browser hasn't unlocked that exact one yet
+function isLocked(){ const b = lockedBlob(); return !!b && (!token || LS.get('mads.lastBlob') !== b); }
+let LOCKED = isLocked();
 async function deriveKey(pass, salt){
   const km = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:300000, hash:'SHA-256'}, km, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
@@ -854,21 +870,31 @@ function shareReady(){
   if(!(crypto && crypto.subtle)){ msg.textContent = 'เบราว์เซอร์นี้ไม่รองรับการเข้ารหัส — เปิดผ่าน http://localhost หรือ https'; return null; }
   return pass;
 }
-function sealCurrent(pass){ return sealPayload(pass, {token, act:S.act, ver:S.ver, track:S.track, result:S.result, target:S.target, interval:S.interval}); }
+function sealCurrent(pass){ return sealPayload(pass, settingsPayload()); }
+function shareBase(){
+  S.publicUrl = $('#fPublicUrl').value.trim(); saveSettings();
+  let base = S.publicUrl || location.href.split('#')[0];
+  if(S.publicUrl && !/\.html?$/i.test(base) && !base.endsWith('/')) base += '/';
+  return base;
+}
+function showLink(link, okMsg){
+  $('#shareLink').value = link; $('#shareOut').hidden = false;
+  const local = /^(https?:\/\/)?(localhost|127\.0\.0\.1)/.test(link);
+  $('#shareMsg').textContent = local ? 'สร้างแล้ว — แต่ต้นลิงก์ยังเป็น localhost คนอื่นเปิดไม่ได้ ใส่ "URL ที่โฮสต์หน้านี้" แล้วสร้างใหม่' : okMsg;
+}
 $('#btnShareLink').addEventListener('click', async ()=>{
   const pass = shareReady(); if(!pass) return; const msg = $('#shareMsg');
   try{
     msg.textContent = 'กำลังสร้าง…';
     const blob = await sealCurrent(pass);
-    S.publicUrl = $('#fPublicUrl').value.trim(); saveSettings();
-    let base = S.publicUrl || location.href.split('#')[0];
-    if(S.publicUrl && !/\.html?$/i.test(base) && !base.endsWith('/')) base += '/';
-    const link = base + '#k=' + encodeURIComponent(blob);
-    $('#shareLink').value = link; $('#shareOut').hidden = false;
-    const local = /^(https?:\/\/)?(localhost|127\.0\.0\.1)/.test(base);
-    msg.textContent = local ? 'สร้างแล้ว — แต่ต้นลิงก์ยังเป็น localhost คนอื่นเปิดไม่ได้ ใส่ "URL ที่โฮสต์หน้านี้" แล้วสร้างใหม่หลังอัปโหลดขึ้นเว็บ' : 'สร้างแล้ว — ส่งลิงก์นี้ให้ทีม และส่งรหัสแยกอีกทาง';
+    showLink(shareBase() + '#k=' + encodeURIComponent(blob), 'สร้างแล้ว — ส่งลิงก์นี้ให้ทีม และส่งรหัสแยกอีกทาง');
     $('#fPass').value = '';
   }catch(e){ msg.textContent = 'สร้างไม่สำเร็จ: ' + e.message; }
+});
+$('#btnPlainLink').addEventListener('click', ()=>{
+  if(!token){ $('#shareMsg').textContent = 'ต้องเชื่อมต่อ token ให้สำเร็จก่อน'; return; }
+  const payload = b64(enc.encode(JSON.stringify(settingsPayload())));
+  showLink(shareBase() + '#t=' + encodeURIComponent(payload), 'สร้างแล้ว — ใครเปิดลิงก์นี้จะเห็นข้อมูลจริงทันที (ลิงก์นี้คือกุญแจ ส่งเฉพาะคนที่ไว้ใจ)');
 });
 $('#btnCopyLink').addEventListener('click', async ()=>{
   const v = $('#shareLink').value; if(!v) return;
@@ -899,10 +925,8 @@ async function unlock(){
   try{
     const blob = lockedBlob();
     const p = await openPayload(pass, blob);
-    token = p.token || '';
-    Object.assign(S, {act:p.act||S.act, ver:p.ver||S.ver, track:p.track!=null?p.track:S.track, result:p.result||S.result, target:p.target!=null?p.target:S.target, interval:p.interval!=null?p.interval:S.interval});
-    LS.set('mads.token', token); LS.set('mads.lastBlob', blob); saveSettings(); syncForm();
-    if(hashBlob()){ try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} }
+    adoptPayload(p); LS.set('mads.lastBlob', blob); syncForm();
+    if(hashBlob()) stripHash();
     LOCKED = false; S.forceDrawer = false; $('#fUnlock').value = ''; msg.textContent = '';
     DATA = null; clearTimeout(timer); load();
   }catch(e){ msg.textContent = 'รหัสไม่ถูกต้อง ลองใหม่อีกครั้ง'; }
