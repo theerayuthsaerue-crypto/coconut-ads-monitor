@@ -417,10 +417,13 @@ function adoptPayload(p){
   LS.set('mads.token', token); saveSettings();
 }
 function stripHash(){ try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} }
-// plain (no-passphrase) share link: #t=<base64 json> — adopt it on load, then drop it from the URL bar
+// plain (no-passphrase) share link: #t=<raw token> (short form; settings come from this file's defaults)
+// or #t=<base64 json> (older long form) — adopt it on load, then drop it from the URL bar
 (function adoptPlainLink(){
   const m = /[#&]t=([^&]+)/.exec(location.hash||''); if(!m) return;
-  try{ const p = JSON.parse(tdec.decode(unb64(decodeURIComponent(m[1])))); if(p && p.token) adoptPayload(p); }catch(e){}
+  const raw = decodeURIComponent(m[1]);
+  if(/^EAA[A-Za-z0-9]+$/.test(raw)) adoptPayload({token: raw});
+  else { try{ const p = JSON.parse(tdec.decode(unb64(raw))); if(p && p.token) adoptPayload(p); }catch(e){} }
   stripHash();
 })();
 // locked when a sealed token is present and this browser hasn't unlocked that exact one yet
@@ -938,7 +941,8 @@ $('#btnShareLink').addEventListener('click', async ()=>{
 });
 $('#btnPlainLink').addEventListener('click', ()=>{
   if(!token){ $('#shareMsg').textContent = 'ต้องเชื่อมต่อ token ให้สำเร็จก่อน'; return; }
-  const payload = b64(enc.encode(JSON.stringify(settingsPayload())));
+  // shortest possible form: just the token; account, campaigns and other settings are baked into the hosted page
+  const payload = /^EAA[A-Za-z0-9]+$/.test(token) ? token : b64(enc.encode(JSON.stringify(settingsPayload())));
   showLink(shareBase() + '#t=' + encodeURIComponent(payload), 'สร้างแล้ว — ใครเปิดลิงก์นี้จะเห็นข้อมูลจริงทันที (ลิงก์นี้คือกุญแจ ส่งเฉพาะคนที่ไว้ใจ)');
 });
 $('#btnCopyLink').addEventListener('click', async ()=>{
