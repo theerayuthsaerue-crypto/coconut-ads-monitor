@@ -241,10 +241,10 @@ tr.ad .name{padding-left:44px}
     <div class="field">
       <label for="fInterval">รีเฟรชอัตโนมัติทุก</label>
       <select id="fInterval">
-        <option value="30">30 วินาที</option>
-        <option value="60">1 นาที</option>
         <option value="120">2 นาที</option>
-        <option value="300">5 นาที</option>
+        <option value="300">5 นาที (แนะนำ)</option>
+        <option value="600">10 นาที</option>
+        <option value="900">15 นาที</option>
         <option value="0">ปิด (กดรีเฟรชเอง)</option>
       </select>
     </div>
@@ -392,13 +392,14 @@ const LS = {
   set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
   del(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
-const DEFAULTS = { act:'act_1488338304757065', ver:'v23.0', preset:'today', interval:60, result:'auto', target:'', filter:'', status:'all', metric:'spend',
+const DEFAULTS = { act:'act_1488338304757065', ver:'v23.0', preset:'today', interval:300, result:'auto', target:'', filter:'', status:'all', metric:'spend',
   track:'120249375126390587, 120249375030900587, 120249373409940587' /* fb1, fb2, fb3 */,
   publicUrl:'https://theerayuthsaerue-crypto.github.io/coconut-ads-monitor/' };
 let S = Object.assign({}, DEFAULTS);
 try{ Object.assign(S, JSON.parse(LS.get('mads.settings')||'{}')); }catch(e){}
+if(S.interval>0 && S.interval<120){ S.interval = 300; saveSettings(); } // older saved settings polled too often for Meta's per-account limit
 let token = LS.get('mads.token') || '';
-let DATA = null, busy = false, timer = null, tick = null, nextAt = 0;
+let DATA = null, busy = false, timer = null, tick = null, nextAt = 0, backoff = 0;
 const collapsed = new Set();
 
 /* ---------- shared (passphrase-locked) copies ---------- */
@@ -542,25 +543,35 @@ async function load(){
     const F = ids.length ? {filtering: campFilter(ids)} : {};
     const sParams = {fields:`id,name,campaign_id,status,effective_status,daily_budget,lifetime_budget,start_time,end_time,optimization_goal,learning_stage_info,${ins}`, limit:200};
     const aParams = {fields:`id,name,adset_id,campaign_id,status,effective_status,ad_review_feedback,created_time,creative{thumbnail_url},${ins}`, limit:500};
-    // 2) everything else in parallel, all filtered to the tracked campaigns
+    // 2) everything else in parallel, all filtered to the tracked campaigns.
+    // Slow-moving pieces are cached to stay under Meta's per-account call limit:
+    // account info once per session, daily series every 10 min, lifetime totals every 60 min.
+    const now = Date.now(), idKey = ids.join(',');
+    const prev = (DATA && !DATA.demo && DATA.idKey === idKey) ? DATA : null;
+    const needAccount = !prev;
+    const needDaily = !prev || !prev.daysAt || now - prev.daysAt > 10*60e3 || prev.daysPreset !== dailyPreset();
+    const needLife = !prev || !prev.lifeAt || now - prev.lifeAt > 60*60e3;
     const [account, adsets, ads, totals, lifetime, daily, hourly] = await Promise.all([
-      gfetch(S.act, {fields:'name,currency,timezone_name,account_status'}),
+      needAccount ? gfetch(S.act, {fields:'name,currency,timezone_name,account_status'}) : Promise.resolve(prev.accountRaw),
       gallTry(S.act+'/adsets', Object.assign({}, F, sParams), sParams),
       gallTry(S.act+'/ads', Object.assign({}, F, aParams), aParams),
       gall(S.act+'/insights', Object.assign({date_preset:S.preset, fields:INS}, F)),
-      gall(S.act+'/insights', Object.assign({date_preset:'maximum', fields:'spend,impressions,clicks,actions'}, F)),
-      gall(S.act+'/insights', Object.assign({date_preset: dailyPreset(), time_increment:1, fields:'spend,impressions,reach,clicks,actions', limit:100}, F)),
+      needLife ? gall(S.act+'/insights', Object.assign({date_preset:'maximum', fields:'spend,impressions,clicks,actions'}, F)) : Promise.resolve(prev.lifetimeRaw),
+      needDaily ? gall(S.act+'/insights', Object.assign({date_preset: dailyPreset(), time_increment:1, fields:'spend,impressions,reach,clicks,actions', limit:100}, F)) : Promise.resolve(prev.dailyRaw),
       gall(S.act+'/insights', Object.assign({date_preset:'today', breakdowns:'hourly_stats_aggregated_by_advertiser_time_zone', fields:'spend,impressions,clicks,actions', limit:100}, F))
     ]);
     DATA = build(account, campaigns, adsets, ads, totals, lifetime, daily, hourly);
-    DATA.demo = false; DATA.fetchedAt = new Date();
-    clearBanner('err'); render(); setLive('ok');
+    DATA.demo = false; DATA.fetchedAt = new Date(); DATA.idKey = idKey;
+    DATA.accountRaw = account; DATA.lifetimeRaw = lifetime; DATA.dailyRaw = daily;
+    DATA.lifeAt = needLife ? now : prev.lifeAt; DATA.daysAt = needDaily ? now : prev.daysAt; DATA.daysPreset = dailyPreset();
+    backoff = 0; clearBanner('err'); render(); setLive('ok');
   }catch(e){
     console.error(e);
     let msg = e.message||String(e);
+    const rateLimited = e.code===4||e.code===17||e.code===32||e.code===613||e.code===80004||/too many calls/i.test(msg);
     if(e.code===190) msg = 'Token หมดอายุหรือไม่ถูกต้อง (code 190) — ขอ token ใหม่แล้ววางในตั้งค่า';
     else if(e.code===200||e.code===10||e.code===294) msg = 'Token นี้ไม่มีสิทธิ์ ads_read สำหรับบัญชีโฆษณานี้ (code '+e.code+') — '+msg;
-    else if(e.code===4||e.code===17||e.code===32||e.code===613) msg = 'เรียก API ถี่เกินไป (rate limit) — ลองเพิ่มช่วงรีเฟรช · '+msg;
+    else if(rateLimited){ backoff = Math.min(1800, backoff ? backoff*2 : 300); msg = 'Meta จำกัดจำนวนการเรียกต่อบัญชีชั่วคราว — จะลองใหม่อัตโนมัติใน '+Math.round(backoff/60)+' นาที (ข้อมูลเดิมยังแสดงอยู่)'; }
     else if(/Failed to fetch|NetworkError/i.test(msg)) msg = 'เชื่อมต่อ graph.facebook.com ไม่ได้ — ตรวจสอบอินเทอร์เน็ต หรือเปิดหน้านี้ผ่าน http://localhost';
     banner('err','crit','โหลดข้อมูลไม่สำเร็จ',msg);
     setLive('error','ผิดพลาด');
@@ -847,7 +858,8 @@ function tickText(){
 }
 function schedule(){
   clearTimeout(timer); clearInterval(tick);
-  if(S.interval>0){ nextAt = Date.now()+S.interval*1000; timer = setTimeout(load, S.interval*1000); tick = setInterval(tickText, 1000); }
+  const secs = backoff ? Math.max(S.interval||0, backoff) : S.interval;
+  if(secs>0){ nextAt = Date.now()+secs*1000; timer = setTimeout(load, secs*1000); tick = setInterval(tickText, 1000); }
   else nextAt = 0;
   tickText();
 }
