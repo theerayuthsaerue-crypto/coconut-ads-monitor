@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coconut Oil Ads Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=Anuphan:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#F4F6F2; --surface:#FFFFFF; --surface-2:#EDF1EA; --line:#D8DED4; --line-2:#E8ECE5;
+  --ink:#16201B; --ink-2:#55635C; --ink-3:#8A968F;
+  --accent:#1D5C4A; --accent-ink:#FFFFFF; --accent-soft:#DDEDE5;
+  --good:#1F7A3A; --good-soft:#E1F2E4; --warn:#B86A00; --warn-soft:#FCEFD9; --crit:#C42F2F; --crit-soft:#FBE3E3; --muted-soft:#EAECE8;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --radius:10px; --shadow:0 1px 2px rgba(22,32,27,.06),0 4px 16px rgba(22,32,27,.05);
+  --display:"Bai Jamjuree","Anuphan","Noto Sans Thai",system-ui,sans-serif;
+  --body:"Anuphan","Noto Sans Thai","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121614; --surface:#1B211E; --surface-2:#232B27; --line:#2F3934; --line-2:#28312C;
+    --ink:#F1F4F0; --ink-2:#B4BDB7; --ink-3:#7C877F;
+    --accent:#5FC49B; --accent-ink:#0E1A14; --accent-soft:#1E3A2F;
+    --good:#5CC86E; --good-soft:#1C3322; --warn:#F0A83A; --warn-soft:#3A2B12; --crit:#F06A6A; --crit-soft:#3D1D1D; --muted-soft:#2A312D;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121614; --surface:#1B211E; --surface-2:#232B27; --line:#2F3934; --line-2:#28312C;
+  --ink:#F1F4F0; --ink-2:#B4BDB7; --ink-3:#7C877F;
+  --accent:#5FC49B; --accent-ink:#0E1A14; --accent-soft:#1E3A2F;
+  --good:#5CC86E; --good-soft:#1C3322; --warn:#F0A83A; --warn-soft:#3A2B12; --crit:#F06A6A; --crit-soft:#3D1D1D; --muted-soft:#2A312D;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1360px;margin:0 auto;padding-inline:16px;padding-block:0 40px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.005em}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-16px;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:15px;flex:none}
+.brand h1{font-size:17px;font-weight:600;white-space:nowrap}
+.brand .acct{font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);margin-left:auto;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+.dot.ok{background:var(--good);box-shadow:0 0 0 3px var(--good-soft)}
+.dot.loading{background:var(--s1);animation:pulse 1s infinite}
+.dot.error{background:var(--crit)}
+.dot.demo{background:var(--warn)}
+@keyframes pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.dot.loading{animation:none}}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.small{padding:4px 9px;font-size:12px}
+.btn.ghost{background:transparent}
+
+/* banners */
+.banner{margin-top:14px;border-radius:var(--radius);padding:10px 14px;display:flex;gap:10px;align-items:flex-start;font-size:13px;border:1px solid transparent}
+.banner.warn{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 30%,transparent);color:var(--ink)}
+.banner.crit{background:var(--crit-soft);border-color:color-mix(in srgb,var(--crit) 30%,transparent)}
+.banner b{font-weight:600}
+.banner .x{margin-left:auto;background:none;border:0;color:var(--ink-2);font-size:16px;line-height:1;padding:0 2px}
+
+/* settings drawer */
+.drawer{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.drawer h2{font-size:15px;font-weight:600;margin-bottom:10px}
+.grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:12px;color:var(--ink-2);font-weight:500}
+.field input,.field select{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 10px;width:100%;min-width:0}
+.field .row{display:flex;gap:6px}
+.field .row input{flex:1}
+.field.wide{grid-column:1/-1}
+.field.hint{display:block}
+.hint{font-size:12px;color:var(--ink-2);line-height:1.55}
+.hint ol{margin:6px 0 0;padding-left:18px}
+.hint code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.drawer .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+
+/* controls row */
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.controls .sel{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 8px 5px 10px;font-size:13px}
+.controls .sel span{color:var(--ink-2);font-size:12px}
+.controls select,.controls input{border:0;background:transparent;padding:2px 0;font-size:13px}
+.controls input[type=text]{width:180px}
+.controls .sel:focus-within{border-color:var(--accent)}
+.section-title{display:flex;align-items:baseline;gap:10px;margin:22px 0 10px}
+.section-title h2{font-size:15px;font-weight:600}
+.section-title .sub{font-size:12px;color:var(--ink-2)}
+.section-title .right{margin-left:auto;font-size:12px;color:var(--ink-2)}
+
+/* KPI tiles */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;min-width:0}
+.tile .lbl{font-size:12px;color:var(--ink-2);font-weight:500;display:flex;align-items:center;gap:6px}
+.tile .val{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;margin-top:4px;letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .val small{font-size:12px;color:var(--ink-3);font-weight:500;margin-left:2px}
+.tile .sub{font-size:11.5px;color:var(--ink-3);margin-top:4px;min-height:17px}
+.tile.hero{border-color:var(--accent);background:linear-gradient(180deg,var(--accent-soft),var(--surface) 70%)}
+.tile.hero .val{color:var(--accent);font-size:26px}
+
+/* two col */
+.cols{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:14px;margin-top:10px}
+@media (max-width:860px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;min-width:0}
+.panel h3{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px}
+.panel h3 .sub{font-weight:400;color:var(--ink-2);font-size:12px}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.charts{grid-template-columns:1fr}}
+.chart{position:relative;margin-top:8px}
+.chart svg{width:100%;height:auto;display:block}
+.chart .bar{transition:opacity .15s}
+.chart .bar.dim{opacity:.35}
+.chart text{font-family:var(--mono);font-size:10px;fill:var(--ink-3)}
+.chart .grid line{stroke:var(--line-2);stroke-width:1}
+.chart .axis{stroke:var(--line);stroke-width:1}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 9px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-110%);box-shadow:var(--shadow);z-index:5}
+.tip b{font-family:var(--mono);font-weight:600}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+
+/* alerts */
+.alerts{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.alert{display:grid;grid-template-columns:4px 1fr;gap:10px;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;background:var(--bg)}
+.alert .stripe{background:var(--ink-3)}
+.alert.good .stripe{background:var(--good)}.alert.warn .stripe{background:var(--warn)}.alert.crit .stripe{background:var(--crit)}.alert.info .stripe{background:var(--s1)}
+.alert .body{padding:8px 10px 8px 4px;min-width:0}
+.alert .t{font-weight:600;font-size:13px;display:flex;gap:6px;align-items:center}
+.alert .t .ic{font-size:12px}
+.alert .d{font-size:12px;color:var(--ink-2);margin-top:2px;word-break:break-word}
+.alert .d .num{font-weight:600;color:var(--ink)}
+.empty{color:var(--ink-3);font-size:13px;padding:14px 4px;text-align:center}
+
+/* table */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);margin-top:10px}
+table{border-collapse:collapse;width:100%;min-width:980px;font-size:13px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line-2);white-space:nowrap;vertical-align:middle}
+th{font-size:11.5px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em;background:var(--surface-2);position:sticky;top:0}
+th:first-child,td:first-child{text-align:left}
+th:nth-child(2),td:nth-child(2){text-align:left}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.camp td{background:color-mix(in srgb,var(--surface-2) 60%,var(--surface));font-weight:600}
+tr.adset td{background:color-mix(in srgb,var(--surface-2) 25%,var(--surface))}
+tr.ad td:first-child{padding-left:10px}
+.name{display:flex;align-items:center;gap:8px;min-width:0;max-width:360px}
+.name .ind{width:14px;flex:none;color:var(--ink-3);font-size:11px}
+.name .lv{font-size:10px;font-weight:600;color:var(--ink-3);letter-spacing:.06em;flex:none;width:34px}
+.name .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.name .txt a{color:inherit;text-decoration:none}
+.name .txt a:hover{text-decoration:underline}
+.name img{width:28px;height:28px;border-radius:4px;object-fit:cover;flex:none;background:var(--surface-2)}
+tr.adset .name{padding-left:22px}
+tr.ad .name{padding-left:44px}
+.tog{background:none;border:0;padding:0 4px;color:var(--ink-3);font-size:11px;width:18px;flex:none}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--muted-soft);color:var(--ink-2);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.good{background:var(--good-soft);color:var(--good)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.crit{background:var(--crit-soft);color:var(--crit)}
+.chip.info{background:color-mix(in srgb,var(--s1) 14%,transparent);color:var(--s1)}
+.pace{display:inline-block;width:56px;height:6px;border-radius:3px;background:var(--surface-2);vertical-align:middle;margin-left:6px;overflow:hidden}
+.pace i{display:block;height:100%;background:var(--s1)}
+.pace i.over{background:var(--warn)}
+.foot{font-size:12px;color:var(--ink-3);margin-top:10px;display:flex;gap:14px;flex-wrap:wrap}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="brand">
+    <div class="mark">🥥</div>
+    <div>
+      <h1>Coconut Oil Ads Monitor</h1>
+      <div class="acct" id="acctLine">Meta Ads · ยังไม่ได้เชื่อมต่อ</div>
+    </div>
+  </div>
+  <div class="live">
+    <span class="dot" id="liveDot"></span>
+    <span id="liveText">ข้อมูลตัวอย่าง</span>
+    <button class="btn small" id="btnRefresh" title="โหลดข้อมูลใหม่เดี๋ยวนี้">↻ รีเฟรช</button>
+    <button class="btn small" id="btnSettings">⚙ ตั้งค่า</button>
+  </div>
+</header>
+
+<div id="banners"></div>
+
+<section class="drawer" id="lock" hidden>
+  <h2>🔒 ใส่รหัสเพื่อเปิด Dashboard</h2>
+  <div class="grid-form">
+    <div class="field wide">
+      <label for="fUnlock">รหัสที่ได้รับจากเจ้าของบัญชี</label>
+      <div class="row">
+        <input id="fUnlock" type="password" autocomplete="current-password" placeholder="รหัสเปิดหน้า">
+        <button class="btn primary" id="btnUnlock" type="button">เปิด</button>
+      </div>
+      <span class="hint" id="unlockMsg">หน้านี้ฝัง token ไว้แบบเข้ารหัส — ถอดรหัสในเบราว์เซอร์ของคุณเท่านั้น ใส่ครั้งเดียว เครื่องนี้จะจำไว้</span>
+    </div>
+  </div>
+</section>
+
+<section class="drawer" id="drawer">
+  <h2>เชื่อมต่อบัญชีโฆษณา Meta</h2>
+  <div class="grid-form">
+    <div class="field wide">
+      <label for="fToken">Access token (ต้องมีสิทธิ์ <code>ads_read</code>)</label>
+      <div class="row">
+        <input id="fToken" type="password" autocomplete="off" spellcheck="false" placeholder="วาง token ที่นี่ — เก็บไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น">
+        <button class="btn" id="btnEye" type="button" title="แสดง/ซ่อน">👁</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fAct">Ad account ID</label>
+      <input id="fAct" type="text" placeholder="act_1234567890">
+    </div>
+    <div class="field">
+      <label for="fVer">Graph API version</label>
+      <input id="fVer" type="text" placeholder="v23.0">
+    </div>
+    <div class="field">
+      <label for="fInterval">รีเฟรชอัตโนมัติทุก</label>
+      <select id="fInterval">
+        <option value="30">30 วินาที</option>
+        <option value="60">1 นาที</option>
+        <option value="120">2 นาที</option>
+        <option value="300">5 นาที</option>
+        <option value="0">ปิด (กดรีเฟรชเอง)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="fResult">ผลลัพธ์ที่นับ</label>
+      <select id="fResult">
+        <option value="auto">อัตโนมัติ (ตามวัตถุประสงค์แคมเปญ)</option>
+        <option value="onsite_conversion.messaging_conversation_started_7d">เริ่มการสนทนาในแอปรับส่งข้อความ</option>
+        <option value="onsite_conversion.total_messaging_connection">การเชื่อมต่อการรับส่งข้อความ</option>
+        <option value="purchase">การซื้อ</option>
+        <option value="omni_purchase">การซื้อ (ทุกช่องทาง)</option>
+        <option value="lead">ลูกค้าเป้าหมาย</option>
+        <option value="link_click">คลิกลิงก์</option>
+        <option value="post_engagement">การมีส่วนร่วมกับโพสต์</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="fTarget">ต้นทุนต่อผลลัพธ์เป้าหมาย (บาท)</label>
+      <input id="fTarget" type="number" min="0" step="1" placeholder="เช่น 40">
+    </div>
+    <div class="field wide">
+      <label for="fTrack">แคมเปญที่ติดตาม (ID หรือชื่อบางส่วน คั่นด้วยจุลภาค — เว้นว่าง = ทุกแคมเปญ)</label>
+      <input id="fTrack" type="text" placeholder="เช่น 120249375126390587, fb1">
+      <span class="hint">ทุกตัวเลขในหน้านี้ รวมถึงยอดใช้สะสม จะนับเฉพาะแคมเปญในรายการนี้ · หา ID ได้จาก URL ใน Ads Manager (<code>selected_campaign_ids=…</code>)</span>
+    </div>
+    <div class="field wide hint">
+      <b>วิธีขอ token</b>
+      <ol>
+        <li>ทดสอบเร็ว (หมดอายุใน 1–2 ชม.): เปิด <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener">Graph API Explorer</a> → เลือกแอปของคุณ → Permissions เพิ่ม <code>ads_read</code> และ <code>read_insights</code> → Generate Access Token → คัดลอกมาวาง</li>
+        <li>ใช้ยาว (ไม่หมดอายุ): Business Settings → Users → System Users → สร้าง system user → Assign asset = บัญชีโฆษณานี้ → Generate token เลือก <code>ads_read</code></li>
+      </ol>
+      หน้านี้เรียก <code>graph.facebook.com</code> จากเบราว์เซอร์ของคุณโดยตรง token ไม่ถูกส่งไปที่อื่น
+    </div>
+    <div class="field wide" id="shareBox">
+      <label for="fPass">แชร์ให้คนอื่น — ตั้งรหัสเปิดหน้า แล้วสร้างไฟล์สำหรับอัปโหลด</label>
+      <div class="row">
+        <input id="fPass" type="password" autocomplete="new-password" placeholder="รหัสอย่างน้อย 8 ตัว (ส่งให้ทีมแยกจากลิงก์)">
+        <button class="btn primary" id="btnShareLink" type="button">สร้างลิงก์แชร์</button>
+        <button class="btn" id="btnShare" type="button">หรือสร้างไฟล์</button>
+      </div>
+      <div class="row" id="shareOut" hidden>
+        <input id="shareLink" type="text" readonly spellcheck="false">
+        <button class="btn" id="btnCopyLink" type="button">คัดลอก</button>
+      </div>
+      <span class="hint">token ปัจจุบันจะถูกเข้ารหัส (AES-256 + PBKDF2) แล้วแนบท้ายลิงก์หลัง <code>#</code> — ส่วนนี้ไม่ถูกส่งไปเซิร์ฟเวอร์ใด เปิดได้เมื่อใส่รหัสนี้เท่านั้น ส่งลิงก์กับรหัสให้ทีมคนละทาง แนะนำใช้ System User token ที่ไม่หมดอายุ · "สร้างไฟล์" ให้ไฟล์ HTML ที่ฝัง token เข้ารหัสไว้ในตัว สำหรับอัปโหลดเอง</span>
+      <span class="hint" id="shareMsg"></span>
+    </div>
+    <div class="field">
+      <label for="fPublicUrl">URL ที่โฮสต์หน้านี้ (ถ้ามี — ใช้เป็นต้นลิงก์แชร์)</label>
+      <input id="fPublicUrl" type="url" placeholder="https://xxx.netlify.app/">
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="btnConnect">เชื่อมต่อและโหลดข้อมูล</button>
+    <button class="btn" id="btnClose">ปิด</button>
+    <button class="btn ghost" id="btnClear">ล้าง token ออกจากเครื่อง</button>
+    <span class="hint" id="saveMsg"></span>
+  </div>
+</section>
+
+<div class="controls">
+  <label class="sel"><span>ช่วงเวลา</span>
+    <select id="cPreset">
+      <option value="today">วันนี้</option>
+      <option value="yesterday">เมื่อวาน</option>
+      <option value="last_7d">7 วันล่าสุด</option>
+      <option value="last_14d">14 วันล่าสุด</option>
+      <option value="last_30d">30 วันล่าสุด</option>
+      <option value="this_month">เดือนนี้</option>
+      <option value="maximum">ทั้งหมด</option>
+    </select>
+  </label>
+  <label class="sel"><span>แสดง</span>
+    <select id="cStatus">
+      <option value="all">ทุกรายการ</option>
+      <option value="active">กำลังทำงาน / กำหนดเวลา</option>
+      <option value="spend">มีการใช้จ่ายในช่วงนี้</option>
+    </select>
+  </label>
+  <label class="sel"><span>ค้นหาชื่อ</span>
+    <input id="cFilter" type="text" placeholder="เช่น มะพร้าว, fb">
+  </label>
+  <label class="sel"><span>กราฟ</span>
+    <select id="cMetric">
+      <option value="spend">ค่าใช้จ่าย</option>
+      <option value="results">ผลลัพธ์</option>
+      <option value="impressions">อิมเพรสชัน</option>
+      <option value="clicks">คลิก</option>
+      <option value="ctr">CTR</option>
+    </select>
+  </label>
+</div>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="cols">
+  <div class="panel">
+    <h3 id="chartTitle">ค่าใช้จ่าย <span class="sub">— รายชั่วโมงวันนี้ และรายวัน</span></h3>
+    <div class="charts">
+      <div>
+        <div class="legend"><span><i id="lg1" style="background:var(--s1)"></i><span id="lgText1">วันนี้ รายชั่วโมง (เวลาบัญชีโฆษณา)</span></span></div>
+        <div class="chart" id="chartHourly"></div>
+      </div>
+      <div>
+        <div class="legend"><span><i style="background:var(--s1)"></i><span id="lgText2">รายวัน</span></span></div>
+        <div class="chart" id="chartDaily"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>สิ่งที่ควรดู <span class="sub" id="alertCount"></span></h3>
+    <div class="alerts" id="alerts"></div>
+  </div>
+</div>
+
+<div class="section-title">
+  <h2>แคมเปญ › ชุดโฆษณา › โฆษณา</h2>
+  <span class="sub" id="tableSub"></span>
+  <span class="right" id="tableCount"></span>
+</div>
+<div class="tablewrap">
+  <table>
+    <thead><tr>
+      <th>ชื่อ</th><th>สถานะ</th><th>งบ/วัน</th><th>ใช้จ่าย</th><th>อิมเพรสชัน</th><th>การเข้าถึง</th><th>ผลลัพธ์</th><th>ต้นทุน/ผลลัพธ์</th><th>CTR</th><th>CPM</th><th>ความถี่</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+<div class="foot">
+  <span id="footNote">ข้อมูลจาก Meta Marketing API · ตัวเลขของวันนี้อาจล่าช้าหลายนาทีตามระบบของ Meta</span>
+</div>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s);
+const G = 'https://graph.facebook.com';
+const LS = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const DEFAULTS = { act:'act_1488338304757065', ver:'v23.0', preset:'today', interval:60, result:'auto', target:'', filter:'', status:'all', metric:'spend',
+  track:'120249375126390587, 120249375030900587, 120249373409940587' /* fb1, fb2, fb3 */,
+  publicUrl:'https://theerayuthsaerue-crypto.github.io/coconut-ads-monitor/' };
+let S = Object.assign({}, DEFAULTS);
+try{ Object.assign(S, JSON.parse(LS.get('mads.settings')||'{}')); }catch(e){}
+let token = LS.get('mads.token') || '';
+let DATA = null, busy = false, timer = null, tick = null, nextAt = 0;
+const collapsed = new Set();
+
+/* ---------- shared (passphrase-locked) copies ---------- */
+const LOCK_META = 'mads-locked';
+function hashBlob(){ const m = /[#&]k=([^&]+)/.exec(location.hash||''); return m ? decodeURIComponent(m[1]) : null; }
+function lockedBlob(){ const h = hashBlob(); if(h) return h; const m = document.querySelector('meta[name="'+LOCK_META+'"]'); return m ? m.getAttribute('content') : null; }
+// locked when a sealed token is present and this browser hasn't unlocked that exact one yet
+function isLocked(){ const b = lockedBlob(); return !!b && (!token || LS.get('mads.lastBlob') !== b); }
+let LOCKED = isLocked();
+const enc = new TextEncoder(), tdec = new TextDecoder();
+const b64 = u8 => btoa(Array.from(u8, c=>String.fromCharCode(c)).join(''));
+const unb64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+async function deriveKey(pass, salt){
+  const km = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:300000, hash:'SHA-256'}, km, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+async function sealPayload(pass, obj){
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(pass, salt);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(JSON.stringify(obj))));
+  return b64(salt)+'.'+b64(iv)+'.'+b64(ct);
+}
+async function openPayload(pass, blob){
+  const [s,i,c] = blob.split('.');
+  const key = await deriveKey(pass, unb64(s));
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(i)}, key, unb64(c));
+  return JSON.parse(tdec.decode(pt));
+}
+
+/* ---------- formatting ---------- */
+const nf0 = new Intl.NumberFormat('th-TH',{maximumFractionDigits:0});
+const nf2 = new Intl.NumberFormat('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+function money(v, cur){ if(v==null||isNaN(v)) return '—'; cur = cur || (DATA&&DATA.account.currency) || 'THB';
+  try{ return new Intl.NumberFormat('th-TH',{style:'currency',currency:cur,minimumFractionDigits:2,maximumFractionDigits:2}).format(v); }catch(e){ return cur+' '+nf2.format(v); } }
+function num(v){ return (v==null||isNaN(v))?'—':nf0.format(v); }
+function pct(v){ return (v==null||isNaN(v))?'—':nf2.format(v)+'%'; }
+function dec(v){ return (v==null||isNaN(v))?'—':nf2.format(v); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const PRESET_TH = {today:'วันนี้',yesterday:'เมื่อวาน',last_7d:'7 วันล่าสุด',last_14d:'14 วันล่าสุด',last_30d:'30 วันล่าสุด',this_month:'เดือนนี้',maximum:'ทั้งหมด'};
+const METRIC_TH = {spend:'ค่าใช้จ่าย',results:'ผลลัพธ์',impressions:'อิมเพรสชัน',clicks:'คลิก',ctr:'CTR'};
+const STATUS_TH = {
+  ACTIVE:['ใช้งานอยู่','good'], PAUSED:['หยุดชั่วคราว',''], PENDING_REVIEW:['รอตรวจสอบ','warn'], DISAPPROVED:['ไม่อนุมัติ','crit'],
+  PREAPPROVED:['อนุมัติเบื้องต้น','good'], PENDING_BILLING_INFO:['รอข้อมูลการชำระเงิน','warn'], CAMPAIGN_PAUSED:['แคมเปญปิดอยู่',''],
+  ADSET_PAUSED:['ชุดโฆษณาปิดอยู่',''], IN_PROCESS:['กำลังประมวลผล','warn'], WITH_ISSUES:['มีปัญหา','crit'], ARCHIVED:['เก็บถาวร',''], DELETED:['ลบแล้ว',''],
+  SCHEDULED:['กำหนดเวลาแล้ว','info'], DRAFT:['ฉบับร่าง','']
+};
+
+/* ---------- Graph API ---------- */
+function apiErr(j){ const e = new Error(j.error.message||'Graph API error'); e.code=j.error.code; e.sub=j.error.error_subcode; e.type=j.error.type; return e; }
+async function gfetch(path, params){
+  const url = new URL(G+'/'+S.ver+'/'+path);
+  Object.entries(params||{}).forEach(([k,v])=>url.searchParams.set(k,v));
+  url.searchParams.set('access_token', token);
+  const r = await fetch(url.toString());
+  const j = await r.json();
+  if(j.error) throw apiErr(j);
+  return j;
+}
+async function gall(path, params){
+  let j = await gfetch(path, params), out = (j.data||[]).slice(), n = 0;
+  while(j.paging && j.paging.next && n++ < 20){
+    const r = await fetch(j.paging.next); j = await r.json(); if(j.error) throw apiErr(j);
+    out.push(...(j.data||[]));
+  }
+  return out;
+}
+// try with a server-side filter first; if the API rejects the filter (code 100) fall back to the plain call
+async function gallTry(path, withFilter, plain){
+  try{ return await gall(path, withFilter); }
+  catch(e){ if(e.code===100) return gall(path, plain); throw e; }
+}
+function parseTrack(){
+  const ids = [], names = [];
+  String(S.track||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean).forEach(s=>{ if(/^\d{6,}$/.test(s)) ids.push(s); else names.push(s.toLowerCase()); });
+  return {ids, names, any: ids.length>0 || names.length>0};
+}
+const campFilter = ids => JSON.stringify([{field:'campaign.id', operator:'IN', value:ids}]);
+
+/* ---------- results logic ---------- */
+const RESULT_PRIORITY = ['onsite_conversion.messaging_conversation_started_7d','purchase','omni_purchase','lead','onsite_conversion.lead_grouped','link_click','post_engagement','video_view'];
+function resultTypeFor(objective){
+  if(S.result!=='auto') return [S.result];
+  const o = (objective||'').toUpperCase();
+  if(o.includes('MESSAGE')||o==='OUTCOME_ENGAGEMENT') return ['onsite_conversion.messaging_conversation_started_7d','onsite_conversion.total_messaging_connection','post_engagement','link_click'];
+  if(o==='OUTCOME_SALES'||o==='CONVERSIONS') return ['purchase','omni_purchase','onsite_conversion.messaging_conversation_started_7d','link_click'];
+  if(o==='OUTCOME_LEADS'||o==='LEAD_GENERATION') return ['lead','onsite_conversion.lead_grouped','onsite_conversion.messaging_conversation_started_7d','link_click'];
+  if(o==='OUTCOME_TRAFFIC'||o==='LINK_CLICKS') return ['link_click','landing_page_view'];
+  return RESULT_PRIORITY;
+}
+function pickAction(actions, types){
+  if(!actions) return {type:null,value:0};
+  for(const t of types){ const a = actions.find(x=>x.action_type===t); if(a) return {type:t, value:+a.value||0}; }
+  return {type:null,value:0};
+}
+function norm(ins, objective){
+  ins = ins && ins.data && ins.data[0] ? ins.data[0] : (ins && ins.spend!==undefined ? ins : null);
+  const o = {spend:0,impressions:0,reach:0,clicks:0,linkClicks:0,ctr:null,cpm:null,cpc:null,frequency:null,results:0,resultType:null,cpr:null,has:false};
+  if(!ins) return o;
+  o.has = true;
+  o.spend=+ins.spend||0; o.impressions=+ins.impressions||0; o.reach=+ins.reach||0; o.clicks=+ins.clicks||0; o.linkClicks=+ins.inline_link_clicks||0;
+  o.ctr = ins.ctr!=null ? +ins.ctr : (o.impressions? o.clicks/o.impressions*100 : null);
+  o.cpm = ins.cpm!=null ? +ins.cpm : (o.impressions? o.spend/o.impressions*1000 : null);
+  o.cpc = ins.cpc!=null ? +ins.cpc : null;
+  o.frequency = ins.frequency!=null ? +ins.frequency : null;
+  const r = pickAction(ins.actions, resultTypeFor(objective)); o.results=r.value; o.resultType=r.type;
+  o.cpr = o.results>0 ? o.spend/o.results : null;
+  return o;
+}
+const RT_TH = {'onsite_conversion.messaging_conversation_started_7d':'การเริ่มสนทนา','onsite_conversion.total_messaging_connection':'การเชื่อมต่อแชท',purchase:'การซื้อ',omni_purchase:'การซื้อ',lead:'ลูกค้าเป้าหมาย','onsite_conversion.lead_grouped':'ลูกค้าเป้าหมาย',link_click:'คลิกลิงก์',post_engagement:'การมีส่วนร่วม',video_view:'การรับชม',landing_page_view:'ดูหน้าปลายทาง'};
+
+/* ---------- load ---------- */
+function dailyPreset(){ return (S.preset==='today'||S.preset==='yesterday') ? 'last_7d' : S.preset; }
+async function load(){
+  if(!token){ DATA = demoData(); render(); setLive('ok'); schedule(); return; }
+  if(busy) return; busy = true; setLive('loading','กำลังโหลด…');
+  try{
+    const INS = 'spend,impressions,reach,clicks,inline_link_clicks,ctr,cpm,cpc,frequency,actions';
+    const ins = `insights.date_preset(${S.preset}){${INS}}`;
+    const TR = parseTrack();
+    // 1) campaigns first — everything else is scoped to the tracked ones
+    const cParams = {fields:`id,name,status,effective_status,objective,daily_budget,lifetime_budget,start_time,stop_time,${ins}`, limit:100};
+    const campaignsAll = (TR.ids.length && !TR.names.length)
+      ? await gallTry(S.act+'/campaigns', Object.assign({filtering:campFilter(TR.ids)}, cParams), cParams)
+      : await gall(S.act+'/campaigns', cParams);
+    let campaigns = TR.any ? campaignsAll.filter(c => TR.ids.includes(c.id) || TR.names.some(n => (c.name||'').toLowerCase().includes(n))) : campaignsAll;
+    if(TR.any && !campaigns.length){ banner('track','warn','ไม่พบแคมเปญที่ติดตาม','ไม่มีแคมเปญตรงกับ "'+S.track+'" — แสดงทุกแคมเปญแทน ตรวจสอบ ID ในตั้งค่า'); campaigns = campaignsAll; } else clearBanner('track');
+    const ids = campaigns.map(c=>c.id);
+    const F = ids.length ? {filtering: campFilter(ids)} : {};
+    const sParams = {fields:`id,name,campaign_id,status,effective_status,daily_budget,lifetime_budget,start_time,end_time,optimization_goal,learning_stage_info,${ins}`, limit:200};
+    const aParams = {fields:`id,name,adset_id,campaign_id,status,effective_status,ad_review_feedback,created_time,creative{thumbnail_url},${ins}`, limit:500};
+    // 2) everything else in parallel, all filtered to the tracked campaigns
+    const [account, adsets, ads, totals, lifetime, daily, hourly] = await Promise.all([
+      gfetch(S.act, {fields:'name,currency,timezone_name,account_status'}),
+      gallTry(S.act+'/adsets', Object.assign({}, F, sParams), sParams),
+      gallTry(S.act+'/ads', Object.assign({}, F, aParams), aParams),
+      gall(S.act+'/insights', Object.assign({date_preset:S.preset, fields:INS}, F)),
+      gall(S.act+'/insights', Object.assign({date_preset:'maximum', fields:'spend,impressions,clicks,actions'}, F)),
+      gall(S.act+'/insights', Object.assign({date_preset: dailyPreset(), time_increment:1, fields:'spend,impressions,reach,clicks,actions', limit:100}, F)),
+      gall(S.act+'/insights', Object.assign({date_preset:'today', breakdowns:'hourly_stats_aggregated_by_advertiser_time_zone', fields:'spend,impressions,clicks,actions', limit:100}, F))
+    ]);
+    DATA = build(account, campaigns, adsets, ads, totals, lifetime, daily, hourly);
+    DATA.demo = false; DATA.fetchedAt = new Date();
+    clearBanner('err'); render(); setLive('ok');
+  }catch(e){
+    console.error(e);
+    let msg = e.message||String(e);
+    if(e.code===190) msg = 'Token หมดอายุหรือไม่ถูกต้อง (code 190) — ขอ token ใหม่แล้ววางในตั้งค่า';
+    else if(e.code===200||e.code===10||e.code===294) msg = 'Token นี้ไม่มีสิทธิ์ ads_read สำหรับบัญชีโฆษณานี้ (code '+e.code+') — '+msg;
+    else if(e.code===4||e.code===17||e.code===32||e.code===613) msg = 'เรียก API ถี่เกินไป (rate limit) — ลองเพิ่มช่วงรีเฟรช · '+msg;
+    else if(/Failed to fetch|NetworkError/i.test(msg)) msg = 'เชื่อมต่อ graph.facebook.com ไม่ได้ — ตรวจสอบอินเทอร์เน็ต หรือเปิดหน้านี้ผ่าน http://localhost';
+    banner('err','crit','โหลดข้อมูลไม่สำเร็จ',msg);
+    setLive('error','ผิดพลาด');
+    if(!DATA){ DATA = demoData(); render(); }
+  }finally{ busy=false; schedule(); }
+}
+
+function build(account, campaigns, adsets, ads, totals, lifetime, daily, hourly){
+  const now = Date.now();
+  const cmap = new Map(), amap = new Map();
+  const keep = new Set(campaigns.map(c=>c.id));
+  adsets = adsets.filter(a=>keep.has(a.campaign_id)); ads = ads.filter(a=>keep.has(a.campaign_id));
+  const camps = campaigns.map(c=>{
+    const o = {level:'camp', id:c.id, name:c.name, status:c.status, eff:c.effective_status, objective:c.objective,
+      daily: c.daily_budget? +c.daily_budget/100 : null, lifetime: c.lifetime_budget? +c.lifetime_budget/100 : null,
+      start:c.start_time?Date.parse(c.start_time):null, stop:c.stop_time?Date.parse(c.stop_time):null, ins:norm(c.insights,c.objective), children:[]};
+    cmap.set(o.id,o); return o;
+  });
+  const sets = adsets.map(a=>{
+    const camp = cmap.get(a.campaign_id);
+    const o = {level:'adset', id:a.id, name:a.name, status:a.status, eff:a.effective_status, objective:camp?camp.objective:null, campId:a.campaign_id,
+      daily: a.daily_budget? +a.daily_budget/100 : null, lifetime: a.lifetime_budget? +a.lifetime_budget/100 : null,
+      start:a.start_time?Date.parse(a.start_time):null, end:a.end_time?Date.parse(a.end_time):null, goal:a.optimization_goal,
+      learning: a.learning_stage_info? a.learning_stage_info.status : null, ins:norm(a.insights, camp?camp.objective:null), children:[]};
+    amap.set(o.id,o); if(camp) camp.children.push(o); return o;
+  });
+  const adl = ads.map(x=>{
+    const set = amap.get(x.adset_id), camp = cmap.get(x.campaign_id);
+    let fb = null;
+    if(x.ad_review_feedback && x.ad_review_feedback.global){ fb = Object.entries(x.ad_review_feedback.global).map(([k,v])=>k+': '+v).join(' · '); }
+    const o = {level:'ad', id:x.id, name:x.name, status:x.status, eff:x.effective_status, objective:camp?camp.objective:null, campId:x.campaign_id, setId:x.adset_id,
+      thumb: x.creative&&x.creative.thumbnail_url||null, review: fb, created:x.created_time?Date.parse(x.created_time):null,
+      start: set? set.start : (camp? camp.start : null), ins:norm(x.insights, camp?camp.objective:null)};
+    if(set) set.children.push(o); return o;
+  });
+  // derive scheduled / draft
+  const all = [...camps,...sets,...adl];
+  for(const e of all){
+    e.display = e.eff || e.status || 'UNKNOWN';
+    if(e.display==='ACTIVE' && e.start && e.start>now) e.display='SCHEDULED';
+    if(e.display==='ACTIVE' && e.level!=='ad' && e.end && e.end<now) e.display='ARCHIVED';
+  }
+  DATA_OBJ_HINT = dominantObjective(camps) || DATA_OBJ_HINT;
+  // hourly
+  const hours = Array.from({length:24},(_,i)=>({label:i, spend:0, impressions:0, clicks:0, results:0}));
+  for(const h of hourly){
+    const key = h.hourly_stats_aggregated_by_advertiser_time_zone||''; const i = parseInt(key.slice(0,2),10); if(isNaN(i)||!hours[i]) continue;
+    hours[i].spend += +h.spend||0; hours[i].impressions += +h.impressions||0; hours[i].clicks += +h.clicks||0;
+    hours[i].results += pickAction(h.actions, RESULT_PRIORITY_ACCOUNT()).value;
+  }
+  const days = daily.map(d=>({label:d.date_start, spend:+d.spend||0, impressions:+d.impressions||0, clicks:+d.clicks||0, results:pickAction(d.actions, RESULT_PRIORITY_ACCOUNT()).value}));
+  const tot = norm(totals[0]||null, DATA_OBJ_HINT);
+  const lt = lifetime[0]||null;
+  const life = lt ? {spend:+lt.spend||0, impressions:+lt.impressions||0, results:pickAction(lt.actions, RESULT_PRIORITY_ACCOUNT()).value} : {spend:0, impressions:0, results:0};
+  return {account:{id:account.id||S.act, name:account.name, currency:account.currency||'THB', tz:account.timezone_name||'Asia/Bangkok', status:account.account_status},
+    camps, sets, ads:adl, totals:tot, lifetime:life, hours, days};
+}
+function dominantObjective(camps){ const c = camps.filter(x=>x.ins.spend>0).sort((a,b)=>b.ins.spend-a.ins.spend)[0]; return c? c.objective : (camps[0]&&camps[0].objective); }
+function RESULT_PRIORITY_ACCOUNT(){ return S.result!=='auto' ? [S.result] : resultTypeFor(DATA_OBJ_HINT); }
+let DATA_OBJ_HINT = 'OUTCOME_ENGAGEMENT';
+
+/* ---------- demo ---------- */
+function demoData(){
+  const now = new Date(); const h = now.getHours();
+  const w = [.2,.1,.1,.1,.1,.2,.4,.7,1,1.2,1.3,1.4,1.3,1.2,1.1,1.1,1.2,1.4,1.6,1.7,1.5,1.2,.8,.4];
+  const hours = w.map((k,i)=>{ const on = i<=h; return {label:i, spend:on?+(12.5*k).toFixed(2):0, impressions:on?Math.round(620*k):0, clicks:on?Math.round(11*k):0, results:on?Math.round(1.6*k):0}; });
+  const days = []; for(let i=6;i>=0;i--){ const d=new Date(now); d.setDate(d.getDate()-i); const k=[1,.9,1.1,1.2,.8,1.05,(h+1)/24][6-i]; days.push({label:d.toISOString().slice(0,10), spend:+(298*k).toFixed(2), impressions:Math.round(14200*k), clicks:Math.round(260*k), results:Math.round(38*k)}); }
+  const mk = (level,id,name,display,objective,daily,ins,extra)=>Object.assign({level,id,name,display,eff:display,status:'ACTIVE',objective,daily,ins:Object.assign({has:true,reach:0,linkClicks:0,cpc:null,frequency:null,resultType:'onsite_conversion.messaging_conversation_started_7d'},ins),children:[]},extra||{});
+  const fin = o=>{ o.ctr = o.impressions? o.clicks/o.impressions*100:null; o.cpm = o.impressions? o.spend/o.impressions*1000:null; o.cpr = o.results? o.spend/o.results:null; o.frequency = o.reach? o.impressions/o.reach:null; return o; };
+  const a1 = mk('ad','d-a1','วิดีโอ รีวิวใช้จริง 15 วิ (ตัวอย่าง)','ACTIVE','OUTCOME_ENGAGEMENT',null,fin({spend:96.4,impressions:5210,reach:4380,clicks:112,results:17}),{thumb:null});
+  const a2 = mk('ad','d-a2','ภาพนิ่ง สรรพคุณ 5 ข้อ (ตัวอย่าง)','ACTIVE','OUTCOME_ENGAGEMENT',null,fin({spend:88.1,impressions:4870,reach:4010,clicks:64,results:7}));
+  const a3 = mk('ad','d-a3','ครีเอทีฟใหม่ รอตรวจสอบ (ตัวอย่าง)','PENDING_REVIEW','OUTCOME_ENGAGEMENT',null,fin({spend:0,impressions:0,reach:0,clicks:0,results:0}));
+  const s1 = mk('adset','d-s1','กว้าง หญิง 25–45 ทั่วไทย (ตัวอย่าง)','ACTIVE','OUTCOME_ENGAGEMENT',200,fin({spend:184.5,impressions:10080,reach:8100,clicks:176,results:24}),{learning:'LEARNING'});
+  const s2 = mk('adset','d-s2','ความสนใจ สุขภาพ/ออร์แกนิก (ตัวอย่าง)','SCHEDULED','OUTCOME_ENGAGEMENT',100,fin({spend:0,impressions:0,reach:0,clicks:0,results:0}),{start:Date.now()+3600e3*8});
+  s1.children=[a1,a2,a3];
+  const c1 = mk('camp','d-c1','น้ำมันมะพร้าวสกัดเย็น – ทักแชท (ตัวอย่าง)','ACTIVE','OUTCOME_ENGAGEMENT',300,fin({spend:184.5,impressions:10080,reach:8100,clicks:176,results:24}));
+  c1.children=[s1,s2];
+  const totals = fin({spend:184.5,impressions:10080,reach:8100,clicks:176,results:24,has:true,resultType:'onsite_conversion.messaging_conversation_started_7d'});
+  return {demo:true, fetchedAt:new Date(), account:{id:S.act,name:'บัญชีตัวอย่าง',currency:'THB',tz:'Asia/Bangkok',status:1}, camps:[c1], sets:[s1,s2], ads:[a1,a2,a3], totals, lifetime:{spend:1842.3,impressions:96400,results:231}, hours, days};
+}
+
+/* ---------- render ---------- */
+function render(){
+  if(!DATA) return;
+  const A = DATA.account;
+  $('#acctLine').textContent = DATA.demo ? 'ข้อมูลตัวอย่าง · ใส่ token เพื่อดูข้อมูลจริง' : `${A.name||''} · ${A.id} · ${A.currency} · ติดตาม ${DATA.camps.length} แคมเปญ (${DATA.camps.map(c=>c.name).join(', ')})`;
+  $('#lock').hidden = !LOCKED;
+  $('#drawer').hidden = LOCKED || (!!token && !S.forceDrawer);
+  if(DATA.demo) banner('demo','warn','กำลังแสดงข้อมูลตัวอย่าง', LOCKED ? 'ใส่รหัสด้านล่างเพื่อดูข้อมูลจริง ตัวเลขทั้งหมดในหน้านี้เป็นตัวอย่างสมมติ' : 'ยังไม่ได้เชื่อมต่อ Meta — กด ⚙ ตั้งค่า แล้ววาง access token ที่มีสิทธิ์ ads_read ตัวเลขทั้งหมดในหน้านี้เป็นตัวอย่างสมมติ'); else clearBanner('demo');
+  renderKpis(); renderCharts(); renderAlerts(); renderTable();
+  $('#footNote').textContent = DATA.demo ? 'ตัวเลขทั้งหมดเป็นข้อมูลตัวอย่าง' : `ข้อมูลจาก Meta Marketing API ${S.ver} · บัญชี ${A.id} · เขตเวลา ${A.tz} · ตัวเลขวันนี้อาจล่าช้าหลายนาทีตามระบบของ Meta`;
+}
+
+function renderKpis(){
+  const T = DATA.totals, p = PRESET_TH[S.preset]||S.preset;
+  const rt = T.resultType ? (RT_TH[T.resultType]||T.resultType) : 'ผลลัพธ์';
+  const target = S.target? +S.target : null;
+  let cprSub = '', cprCls = '';
+  if(T.cpr!=null && target){ const d = (T.cpr-target)/target*100; cprSub = (d<=0?'ต่ำกว่าเป้า ':'สูงกว่าเป้า ')+nf0.format(Math.abs(d))+'% (เป้า '+money(target)+')'; }
+  const tiles = [
+    ['ใช้จ่าย '+p, money(T.spend), T.has? '' : 'ยังไม่มีข้อมูลในช่วงนี้', 'hero'],
+    [rt, num(T.results), T.resultType? '' : 'ไม่พบ action ที่ตรง'],
+    ['ต้นทุนต่อ'+rt, T.cpr!=null? money(T.cpr):'—', cprSub],
+    ['อิมเพรสชัน', num(T.impressions), ''],
+    ['การเข้าถึง', num(T.reach), T.frequency!=null? 'ความถี่ '+dec(T.frequency):''],
+    ['CTR', pct(T.ctr), 'คลิก '+num(T.clicks)],
+    ['CPM', T.cpm!=null? money(T.cpm):'—', 'ต่อ 1,000 อิมเพรสชัน'],
+    ['ยอดใช้สะสมตั้งแต่เริ่ม', money(DATA.lifetime.spend), 'ผลลัพธ์สะสม '+num(DATA.lifetime.results)+' · เฉพาะแคมเปญที่ติดตาม']
+  ];
+  $('#kpis').innerHTML = tiles.map(t=>`<div class="tile ${t[3]||''}"><div class="lbl">${esc(t[0])}</div><div class="val">${esc(t[1])}</div><div class="sub">${esc(t[2]||'')}</div></div>`).join('');
+}
+
+function metricOf(pt){ if(S.metric==='ctr') return pt.impressions? pt.clicks/pt.impressions*100 : 0; return pt[S.metric]||0; }
+function fmtMetric(v){ if(S.metric==='spend') return money(v); if(S.metric==='ctr') return pct(v); return num(v); }
+function renderCharts(){
+  $('#chartTitle').innerHTML = esc(METRIC_TH[S.metric])+' <span class="sub">— รายชั่วโมงวันนี้ และรายวัน ('+esc(PRESET_TH[dailyPreset()])+')</span>';
+  $('#lgText2').textContent = 'รายวัน · '+PRESET_TH[dailyPreset()];
+  const nowH = currentHourIn(DATA.account.tz);
+  barChart($('#chartHourly'), DATA.hours.map(h=>({x:String(h.label).padStart(2,'0'), v:metricOf(h), tip:`${String(h.label).padStart(2,'0')}:00–${String(h.label).padStart(2,'0')}:59 · <b>${fmtMetric(metricOf(h))}</b>`, hi:h.label===nowH, off:h.label>nowH})), {every:3});
+  barChart($('#chartDaily'), DATA.days.map(d=>({x:d.label.slice(5).replace('-','/'), v:metricOf(d), tip:`${d.label} · <b>${fmtMetric(metricOf(d))}</b>`, hi:d.label===todayIn(DATA.account.tz)})), {every: DATA.days.length>16? Math.ceil(DATA.days.length/8):1});
+}
+function currentHourIn(tz){ try{ return +new Intl.DateTimeFormat('en-GB',{hour:'2-digit',hour12:false,timeZone:tz}).format(new Date()); }catch(e){ return new Date().getHours(); } }
+function todayIn(tz){ try{ const p = new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); return p; }catch(e){ return new Date().toISOString().slice(0,10); } }
+function barChart(el, pts, o){
+  const W=560, H=190, pl=44, pr=8, pt=10, pb=24; const iw=W-pl-pr, ih=H-pt-pb;
+  const max = Math.max(1e-9, ...pts.map(p=>p.v));
+  const nice = niceMax(max); const n = pts.length; const gap = 2; const bw = Math.max(2,(iw/n)-gap);
+  const ticks = [0,nice/2,nice];
+  const y = v=> pt + ih - (v/nice)*ih;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="กราฟแท่ง">`;
+  svg += '<g class="grid">'+ticks.map(t=>`<line x1="${pl}" x2="${W-pr}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}"/>`).join('')+'</g>';
+  svg += ticks.map(t=>`<text x="${pl-6}" y="${(y(t)+3).toFixed(1)}" text-anchor="end">${shortNum(t)}</text>`).join('');
+  pts.forEach((p,i)=>{
+    const x = pl + i*(iw/n) + gap/2; const hh = Math.max(0,(p.v/nice)*ih); const yy = pt+ih-hh;
+    const fill = p.off? 'var(--line)' : (p.hi? 'var(--s2)' : 'var(--s1)');
+    svg += `<rect class="bar" data-i="${i}" x="${x.toFixed(1)}" y="${(hh>0?yy:pt+ih-1).toFixed(1)}" width="${bw.toFixed(1)}" height="${(hh>0?hh:1).toFixed(1)}" rx="${Math.min(3,bw/2)}" fill="${fill}" ${hh>0?'':'opacity=".35"'}/>`;
+    if(i%o.every===0) svg += `<text x="${(x+bw/2).toFixed(1)}" y="${H-8}" text-anchor="middle">${esc(p.x)}</text>`;
+  });
+  svg += `<line class="axis" x1="${pl}" x2="${W-pr}" y1="${pt+ih}" y2="${pt+ih}"/>`;
+  // hit targets
+  pts.forEach((p,i)=>{ const x = pl + i*(iw/n); svg += `<rect class="hit" data-i="${i}" x="${x.toFixed(1)}" y="${pt}" width="${(iw/n).toFixed(1)}" height="${ih}" fill="transparent"/>`; });
+  svg += '</svg>';
+  el.innerHTML = svg;
+  const tip = document.createElement('div'); tip.className='tip'; tip.hidden=true; el.appendChild(tip);
+  const bars = el.querySelectorAll('.bar');
+  el.querySelectorAll('.hit').forEach(h=>{
+    h.addEventListener('mouseenter', e=>{ const i=+h.dataset.i; tip.innerHTML = pts[i].tip; tip.hidden=false; bars.forEach((b,j)=>b.classList.toggle('dim', j!==i)); place(e); });
+    h.addEventListener('mousemove', place);
+    h.addEventListener('mouseleave', ()=>{ tip.hidden=true; bars.forEach(b=>b.classList.remove('dim')); });
+  });
+  function place(e){ const r = el.getBoundingClientRect(); tip.style.left = (e.clientX-r.left)+'px'; tip.style.top = (e.clientY-r.top-6)+'px'; }
+}
+function niceMax(v){ if(v<=0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v/p; const n = m<=1?1: m<=2?2: m<=2.5?2.5: m<=5?5:10; return n*p; }
+function shortNum(v){ if(v>=1e6) return (v/1e6).toFixed(1).replace(/\.0$/,'')+'M'; if(v>=1e3) return (v/1e3).toFixed(1).replace(/\.0$/,'')+'k'; return S.metric==='spend'||S.metric==='ctr'? (+v.toFixed(2)).toString() : nf0.format(v); }
+
+/* ---------- alerts ---------- */
+function renderAlerts(){
+  const out = []; const T = DATA.totals; const target = S.target? +S.target : null; const now = Date.now();
+  const ads = DATA.ads, sets = DATA.sets, camps = DATA.camps;
+  const isRunning = e => e.display==='ACTIVE';
+  // review / issues
+  for(const a of ads){
+    if(a.display==='DISAPPROVED'||a.display==='WITH_ISSUES') out.push(['crit','✕','โฆษณา "'+a.name+'" '+STATUS_TH[a.display][0], a.review || 'เปิดใน Ads Manager เพื่อดูเหตุผลและแก้ไข']);
+    else if(a.display==='PENDING_REVIEW'||a.display==='IN_PROCESS') out.push(['info','◔','โฆษณา "'+a.name+'" '+STATUS_TH[a.display][0], 'ปกติ Meta ใช้เวลาไม่เกิน 24 ชม. ระหว่างนี้ยังไม่แสดงผล']);
+    else if(a.display==='PENDING_BILLING_INFO') out.push(['crit','✕','ต้องเพิ่มข้อมูลการชำระเงิน', 'โฆษณา "'+a.name+'" จะไม่แสดงจนกว่าจะเพิ่มวิธีชำระเงินในบัญชี']);
+  }
+  for(const s of sets){
+    if(s.display==='SCHEDULED') out.push(['info','◷','ชุดโฆษณา "'+s.name+'" รอเริ่มตามกำหนด', s.start? 'เริ่ม '+fmtDT(s.start) : '']);
+    if(s.learning==='LEARNING_LIMITED' && isRunning(s)) out.push(['warn','!','ชุดโฆษณา "'+s.name+'" เรียนรู้ได้จำกัด (Learning limited)', 'ผลลัพธ์ไม่ถึง ~50 ครั้ง/สัปดาห์ — ลองรวมชุดโฆษณา ขยายกลุ่มเป้าหมาย หรือเพิ่มงบ']);
+  }
+  // running but no impressions
+  for(const a of ads){ if(isRunning(a) && a.ins.impressions===0 && S.preset==='today'){ const hrs = a.start? (now-a.start)/3600e3 : 99; if(hrs>=3) out.push(['warn','!','โฆษณา "'+a.name+'" ยังไม่มีการแสดงผลวันนี้', 'เปิดอยู่แต่อิมเพรสชันเป็น 0 — ตรวจสอบงบ การประมูล หรือกลุ่มเป้าหมายแคบเกินไป']); } }
+  // pacing (today only)
+  if(S.preset==='today'){
+    const hour = currentHourIn(DATA.account.tz); const frac = Math.max(0.05,(hour+0.5)/24);
+    for(const e of [...camps,...sets]){ if(!isRunning(e)||!e.daily) continue; const expect = e.daily*frac; const ratio = e.ins.spend/e.daily;
+      if(hour>=4 && e.ins.spend < expect*0.3) out.push(['warn','!',(e.level==='camp'?'แคมเปญ':'ชุดโฆษณา')+' "'+e.name+'" ใช้งบช้ากว่าที่ควร', 'ใช้ไป '+money(e.ins.spend)+' จากงบ '+money(e.daily)+'/วัน ('+nf0.format(ratio*100)+'%) ทั้งที่ผ่านมาแล้ว '+nf0.format(frac*100)+'% ของวัน']);
+      if(ratio>1.05) out.push(['info','i',(e.level==='camp'?'แคมเปญ':'ชุดโฆษณา')+' "'+e.name+'" ใช้เกินงบรายวันเล็กน้อย', 'Meta อาจใช้เกินได้ถึง 25% ในบางวัน แต่เฉลี่ยรายสัปดาห์จะไม่เกินงบ']);
+    }
+  }
+  // performance
+  const perf = ads.filter(a=>a.ins.spend>0);
+  for(const a of perf){
+    if(target && a.ins.results>=3 && a.ins.cpr>target*1.3) out.push(['warn','!','โฆษณา "'+a.name+'" ต้นทุนต่อผลลัพธ์สูงกว่าเป้า', money(a.ins.cpr)+' เทียบเป้า '+money(target)+' — พิจารณาปิดหรือเปลี่ยนครีเอทีฟ']);
+    if(a.ins.impressions>=1000 && a.ins.ctr!=null && a.ins.ctr<1) out.push(['warn','!','โฆษณา "'+a.name+'" CTR ต่ำ', pct(a.ins.ctr)+' จาก '+num(a.ins.impressions)+' อิมเพรสชัน — ครีเอทีฟหรือข้อความอาจไม่ดึงดูด']);
+    if(a.ins.frequency!=null && a.ins.frequency>3) out.push(['warn','!','โฆษณา "'+a.name+'" ความถี่สูง', 'คนเดิมเห็นเฉลี่ย '+dec(a.ins.frequency)+' ครั้ง — เริ่มล้า ลองสลับครีเอทีฟหรือขยายกลุ่มเป้าหมาย']);
+    if(a.ins.spend>= (target? target*3 : 150) && a.ins.results===0) out.push(['warn','!','โฆษณา "'+a.name+'" ใช้เงินแล้วแต่ยังไม่มีผลลัพธ์', 'ใช้ไป '+money(a.ins.spend)+' ผลลัพธ์ 0']);
+  }
+  const ranked = perf.filter(a=>a.ins.results>=3 && a.ins.cpr!=null).sort((a,b)=>a.ins.cpr-b.ins.cpr);
+  if(ranked.length){ const b = ranked[0]; out.push(['good','★','ตัวท็อป: "'+b.name+'"', 'ต้นทุนต่อผลลัพธ์ '+money(b.ins.cpr)+' · '+num(b.ins.results)+' ผลลัพธ์ · CTR '+pct(b.ins.ctr)+(ranked.length>1? ' — ดีกว่าตัวท้าย '+nf0.format((ranked[ranked.length-1].ins.cpr/b.ins.cpr-1)*100)+'%':'')]); }
+  if(T.has && T.cpr!=null && target && T.cpr<=target) out.push(['good','✓','ภาพรวมต้นทุนต่อผลลัพธ์อยู่ในเป้า', money(T.cpr)+' เทียบเป้า '+money(target)]);
+  if(!out.length) out.push(['good','✓','ยังไม่พบสิ่งผิดปกติ', T.has? 'ระบบตรวจสถานะการอนุมัติ การใช้งบ CTR ความถี่ และต้นทุนต่อผลลัพธ์ทุกครั้งที่รีเฟรช' : 'ยังไม่มีข้อมูลในช่วงเวลานี้']);
+  const order = {crit:0,warn:1,info:2,good:3}; out.sort((a,b)=>order[a[0]]-order[b[0]]);
+  $('#alerts').innerHTML = out.map(a=>`<div class="alert ${a[0]}"><div class="stripe"></div><div class="body"><div class="t"><span class="ic">${a[1]}</span>${esc(a[2])}</div><div class="d">${esc(a[3])}</div></div></div>`).join('');
+  const nCrit = out.filter(a=>a[0]==='crit').length, nWarn = out.filter(a=>a[0]==='warn').length;
+  $('#alertCount').textContent = (nCrit? nCrit+' วิกฤต · ':'')+(nWarn? nWarn+' เตือน':'')||'';
+}
+function fmtDT(ms){ try{ return new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:DATA.account.tz}).format(new Date(ms)); }catch(e){ return new Date(ms).toLocaleString('th-TH'); } }
+
+/* ---------- table ---------- */
+function passes(e){
+  const f = S.filter.trim().toLowerCase();
+  if(S.status==='active' && !(e.display==='ACTIVE'||e.display==='SCHEDULED'||e.display==='PENDING_REVIEW'||e.display==='PREAPPROVED')) return false;
+  if(S.status==='spend' && !(e.ins.spend>0)) return false;
+  return true;
+}
+function nameMatch(e,f){ return !f || (e.name||'').toLowerCase().includes(f); }
+function renderTable(){
+  const f = S.filter.trim().toLowerCase(); const rows = []; let nC=0,nS=0,nA=0;
+  const actNum = (DATA.account.id||S.act).replace('act_','');
+  const camps = DATA.camps.slice().sort((a,b)=> (b.ins.spend-a.ins.spend) || (rank(b)-rank(a)));
+  for(const c of camps){
+    const setsV = c.children.slice().sort((a,b)=>b.ins.spend-a.ins.spend);
+    const anyMatch = nameMatch(c,f) || setsV.some(s=>nameMatch(s,f)||s.children.some(a=>nameMatch(a,f)));
+    if(!anyMatch) continue;
+    const visSets = setsV.filter(s=> (nameMatch(c,f)||nameMatch(s,f)||s.children.some(a=>nameMatch(a,f))) );
+    if(!passes(c) && !visSets.some(s=>passes(s)||s.children.some(a=>passes(a)))) continue;
+    nC++; const cOpen = !collapsed.has(c.id);
+    rows.push(row(c,'camp',cOpen,actNum,visSets.length));
+    if(!cOpen) continue;
+    for(const s of visSets){
+      if(!passes(s) && !s.children.some(a=>passes(a))) continue;
+      nS++; const sOpen = !collapsed.has(s.id);
+      rows.push(row(s,'adset',sOpen,actNum,s.children.length));
+      if(!sOpen) continue;
+      for(const a of s.children.slice().sort((x,y)=>y.ins.spend-x.ins.spend)){
+        if(!passes(a)) continue; if(!(nameMatch(c,f)||nameMatch(s,f)||nameMatch(a,f))) continue;
+        nA++; rows.push(row(a,'ad',false,actNum,0));
+      }
+    }
+  }
+  $('#tbody').innerHTML = rows.join('') || `<tr><td colspan="11" class="empty">ไม่มีรายการที่ตรงกับตัวกรอง</td></tr>`;
+  $('#tableCount').textContent = `${nC} แคมเปญ · ${nS} ชุดโฆษณา · ${nA} โฆษณา`;
+  $('#tableSub').textContent = 'ตัวเลขช่วง '+(PRESET_TH[S.preset]||S.preset)+' · เรียงตามค่าใช้จ่าย';
+  $('#tbody').querySelectorAll('.tog').forEach(b=>b.addEventListener('click',()=>{ const id=b.dataset.id; if(collapsed.has(id)) collapsed.delete(id); else collapsed.add(id); renderTable(); }));
+}
+function rank(e){ return e.display==='ACTIVE'?3: e.display==='SCHEDULED'?2: 1; }
+function row(e, level, open, actNum, nChildren){
+  const st = STATUS_TH[e.display] || [e.display,''];
+  const I = e.ins; const lv = {camp:'CAMP',adset:'SET',ad:'AD'}[level];
+  const link = level==='camp' ? `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${actNum}&selected_campaign_ids=${e.id}`
+    : level==='adset' ? `https://adsmanager.facebook.com/adsmanager/manage/adsets?act=${actNum}&selected_adset_ids=${e.id}`
+    : `https://adsmanager.facebook.com/adsmanager/manage/ads?act=${actNum}&selected_ad_ids=${e.id}`;
+  const tog = level==='ad' ? '<span class="tog"></span>' : `<button class="tog" data-id="${esc(e.id)}" aria-label="${open?'ย่อ':'ขยาย'}">${open?'▾':'▸'}</button>`;
+  const thumb = level==='ad' ? (e.thumb? `<img src="${esc(e.thumb)}" alt="" loading="lazy">` : '') : '';
+  let budget = e.daily!=null ? money(e.daily) : (e.lifetime!=null ? money(e.lifetime)+' <small>รวม</small>' : (level==='ad'?'':'<span style="color:var(--ink-3)">งบแคมเปญ</span>'));
+  if(S.preset==='today' && e.daily && e.display==='ACTIVE'){ const r = Math.min(1.3, I.spend/e.daily); budget += `<span class="pace" title="ใช้ไป ${nf0.format(r*100)}% ของงบวันนี้"><i class="${r>1?'over':''}" style="width:${Math.min(100,r*100).toFixed(0)}%"></i></span>`; }
+  let extra = '';
+  if(level==='adset' && e.learning==='LEARNING') extra = ' <span class="chip info" title="ระยะเรียนรู้">เรียนรู้</span>';
+  if(level==='adset' && e.learning==='LEARNING_LIMITED') extra = ' <span class="chip warn">เรียนรู้จำกัด</span>';
+  if(level==='ad' && e.review) extra = ` <span class="chip crit" title="${esc(e.review)}">ดูเหตุผล</span>`;
+  const sub = level==='camp' && nChildren ? `<span style="color:var(--ink-3);font-weight:400;font-size:11px"> · ${nChildren} ชุด</span>` : '';
+  return `<tr class="${level}"><td><div class="name">${tog}<span class="lv">${lv}</span>${thumb}<span class="txt"><a href="${link}" target="_blank" rel="noopener" title="เปิดใน Ads Manager">${esc(e.name)}</a>${sub}</span></div></td>
+  <td><span class="chip ${st[1]}">${esc(st[0])}</span>${extra}</td>
+  <td class="num">${budget||'—'}</td>
+  <td class="num">${I.spend? money(I.spend):'—'}</td>
+  <td class="num">${I.impressions? num(I.impressions):'—'}</td>
+  <td class="num">${I.reach? num(I.reach):'—'}</td>
+  <td class="num">${I.results? num(I.results):'—'}</td>
+  <td class="num">${I.cpr!=null? money(I.cpr):'—'}</td>
+  <td class="num">${I.impressions? pct(I.ctr):'—'}</td>
+  <td class="num">${I.impressions? money(I.cpm):'—'}</td>
+  <td class="num">${I.frequency!=null&&I.impressions? dec(I.frequency):'—'}</td></tr>`;
+}
+
+/* ---------- banners / live ---------- */
+function banner(id, cls, title, msg){
+  let el = document.getElementById('bn-'+id);
+  if(!el){ el = document.createElement('div'); el.id='bn-'+id; $('#banners').appendChild(el); }
+  el.className = 'banner '+cls; el.innerHTML = `<div><b>${esc(title)}</b> — ${esc(msg)}</div><button class="x" aria-label="ปิด">×</button>`;
+  el.querySelector('.x').addEventListener('click',()=>el.remove());
+}
+function clearBanner(id){ const el = document.getElementById('bn-'+id); if(el) el.remove(); }
+function setLive(state, text){
+  const d = $('#liveDot'); d.className = 'dot '+(DATA&&DATA.demo&&state==='ok'?'demo':state);
+  if(text) $('#liveText').textContent = text; else tickText();
+}
+function tickText(){
+  if(!DATA) return;
+  const t = DATA.fetchedAt ? new Intl.DateTimeFormat('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(DATA.fetchedAt) : '—';
+  let s = DATA.demo ? 'ข้อมูลตัวอย่าง' : 'อัปเดต '+t;
+  if(S.interval>0 && nextAt && !busy){ const left = Math.max(0, Math.round((nextAt-Date.now())/1000)); s += ' · รีเฟรชใน '+left+' วิ'; }
+  $('#liveText').textContent = s;
+}
+function schedule(){
+  clearTimeout(timer); clearInterval(tick);
+  if(S.interval>0){ nextAt = Date.now()+S.interval*1000; timer = setTimeout(load, S.interval*1000); tick = setInterval(tickText, 1000); }
+  else nextAt = 0;
+  tickText();
+}
+
+/* ---------- settings UI ---------- */
+function saveSettings(){ LS.set('mads.settings', JSON.stringify({act:S.act,ver:S.ver,preset:S.preset,interval:S.interval,result:S.result,target:S.target,filter:S.filter,status:S.status,metric:S.metric,track:S.track,publicUrl:S.publicUrl||''})); }
+function syncForm(){
+  $('#fToken').value = token; $('#fAct').value = S.act; $('#fVer').value = S.ver; $('#fInterval').value = String(S.interval); $('#fResult').value = S.result; $('#fTarget').value = S.target; $('#fTrack').value = S.track; $('#fPublicUrl').value = S.publicUrl||'';
+  $('#cPreset').value = S.preset; $('#cStatus').value = S.status; $('#cFilter').value = S.filter; $('#cMetric').value = S.metric;
+}
+$('#btnEye').addEventListener('click',()=>{ const i=$('#fToken'); i.type = i.type==='password'?'text':'password'; });
+$('#btnSettings').addEventListener('click',()=>{ S.forceDrawer = !S.forceDrawer || $('#drawer').hidden; $('#drawer').hidden = !S.forceDrawer; if(S.forceDrawer) $('#fToken').focus(); });
+$('#btnClose').addEventListener('click',()=>{ S.forceDrawer=false; $('#drawer').hidden = !!token; });
+$('#btnClear').addEventListener('click',()=>{ token=''; LS.del('mads.token'); LS.del('mads.lastBlob'); $('#fToken').value=''; $('#saveMsg').textContent='ล้าง token แล้ว'; DATA=null; S.forceDrawer=true; LOCKED = isLocked(); clearTimeout(timer); load(); });
+window.addEventListener('hashchange', ()=>{ if(isLocked()){ LOCKED = true; DATA = null; clearTimeout(timer); load(); } });
+function shareReady(){
+  const pass = $('#fPass').value, msg = $('#shareMsg');
+  if(!token){ msg.textContent = 'ต้องเชื่อมต่อ token ให้สำเร็จก่อน'; return null; }
+  if(pass.length < 8){ msg.textContent = 'รหัสต้องยาวอย่างน้อย 8 ตัว'; return null; }
+  if(!(crypto && crypto.subtle)){ msg.textContent = 'เบราว์เซอร์นี้ไม่รองรับการเข้ารหัส — เปิดผ่าน http://localhost หรือ https'; return null; }
+  return pass;
+}
+function sealCurrent(pass){ return sealPayload(pass, {token, act:S.act, ver:S.ver, track:S.track, result:S.result, target:S.target, interval:S.interval}); }
+$('#btnShareLink').addEventListener('click', async ()=>{
+  const pass = shareReady(); if(!pass) return; const msg = $('#shareMsg');
+  try{
+    msg.textContent = 'กำลังสร้าง…';
+    const blob = await sealCurrent(pass);
+    S.publicUrl = $('#fPublicUrl').value.trim(); saveSettings();
+    let base = S.publicUrl || location.href.split('#')[0];
+    if(S.publicUrl && !/\.html?$/i.test(base) && !base.endsWith('/')) base += '/';
+    const link = base + '#k=' + encodeURIComponent(blob);
+    $('#shareLink').value = link; $('#shareOut').hidden = false;
+    const local = /^(https?:\/\/)?(localhost|127\.0\.0\.1)/.test(base);
+    msg.textContent = local ? 'สร้างแล้ว — แต่ต้นลิงก์ยังเป็น localhost คนอื่นเปิดไม่ได้ ใส่ "URL ที่โฮสต์หน้านี้" แล้วสร้างใหม่หลังอัปโหลดขึ้นเว็บ' : 'สร้างแล้ว — ส่งลิงก์นี้ให้ทีม และส่งรหัสแยกอีกทาง';
+    $('#fPass').value = '';
+  }catch(e){ msg.textContent = 'สร้างไม่สำเร็จ: ' + e.message; }
+});
+$('#btnCopyLink').addEventListener('click', async ()=>{
+  const v = $('#shareLink').value; if(!v) return;
+  try{ await navigator.clipboard.writeText(v); $('#shareMsg').textContent = 'คัดลอกลิงก์แล้ว'; }
+  catch(e){ $('#shareLink').select(); document.execCommand && document.execCommand('copy'); $('#shareMsg').textContent = 'เลือกข้อความแล้ว กด ⌘C เพื่อคัดลอก'; }
+});
+$('#btnShare').addEventListener('click', async ()=>{
+  const pass = shareReady(); if(!pass) return; const msg = $('#shareMsg');
+  try{
+    msg.textContent = 'กำลังสร้าง…';
+    const blob = await sealCurrent(pass);
+    let html;
+    try{ const r = await fetch(location.href, {cache:'no-store'}); if(!r.ok) throw new Error(r.status); html = await r.text(); }
+    catch(e){ html = '<!doctype html>\n' + document.documentElement.outerHTML; }
+    html = html.replace(new RegExp('<meta name="'+LOCK_META+'"[^>]*>\\n?', 'g'), '');
+    html = html.replace('</title>', '</title>\n<meta name="'+LOCK_META+'" content="'+blob+'">');
+    const file = new Blob([html], {type:'text/html'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = 'coconut-ads-monitor.html'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+    msg.textContent = 'สร้างแล้ว — ไฟล์ coconut-ads-monitor.html อยู่ในโฟลเดอร์ดาวน์โหลด นำไปอัปโหลดได้เลย';
+    $('#fPass').value = '';
+  }catch(e){ msg.textContent = 'สร้างไม่สำเร็จ: ' + e.message; }
+});
+async function unlock(){
+  const pass = $('#fUnlock').value, msg = $('#unlockMsg');
+  if(!pass){ msg.textContent = 'ใส่รหัสก่อน'; return; }
+  msg.textContent = 'กำลังตรวจสอบ…';
+  try{
+    const blob = lockedBlob();
+    const p = await openPayload(pass, blob);
+    token = p.token || '';
+    Object.assign(S, {act:p.act||S.act, ver:p.ver||S.ver, track:p.track!=null?p.track:S.track, result:p.result||S.result, target:p.target!=null?p.target:S.target, interval:p.interval!=null?p.interval:S.interval});
+    LS.set('mads.token', token); LS.set('mads.lastBlob', blob); saveSettings(); syncForm();
+    if(hashBlob()){ try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} }
+    LOCKED = false; S.forceDrawer = false; $('#fUnlock').value = ''; msg.textContent = '';
+    DATA = null; clearTimeout(timer); load();
+  }catch(e){ msg.textContent = 'รหัสไม่ถูกต้อง ลองใหม่อีกครั้ง'; }
+}
+$('#btnUnlock').addEventListener('click', unlock);
+$('#fUnlock').addEventListener('keydown', e=>{ if(e.key==='Enter') unlock(); });
+$('#btnConnect').addEventListener('click',()=>{
+  token = $('#fToken').value.trim(); S.act = $('#fAct').value.trim()||DEFAULTS.act; if(!/^act_/.test(S.act)) S.act='act_'+S.act;
+  S.ver = $('#fVer').value.trim()||DEFAULTS.ver; if(!/^v/.test(S.ver)) S.ver='v'+S.ver;
+  S.interval = +$('#fInterval').value; S.result = $('#fResult').value; S.target = $('#fTarget').value; S.track = $('#fTrack').value.trim();
+  LS.set('mads.token', token); saveSettings(); S.forceDrawer=false; $('#saveMsg').textContent = token? 'บันทึกแล้ว กำลังโหลด…' : 'ยังไม่มี token — แสดงข้อมูลตัวอย่าง';
+  DATA=null; clearTimeout(timer); load();
+});
+$('#btnRefresh').addEventListener('click',()=>{ clearTimeout(timer); load(); });
+$('#cPreset').addEventListener('change',e=>{ S.preset=e.target.value; saveSettings(); clearTimeout(timer); DATA_STALE(); load(); });
+$('#cStatus').addEventListener('change',e=>{ S.status=e.target.value; saveSettings(); renderTable(); });
+$('#cFilter').addEventListener('input',e=>{ S.filter=e.target.value; saveSettings(); renderTable(); });
+$('#cMetric').addEventListener('change',e=>{ S.metric=e.target.value; saveSettings(); renderCharts(); });
+function DATA_STALE(){ if(DATA&&DATA.demo){ DATA=null; } }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && DATA && !DATA.demo && S.interval>0 && Date.now()>nextAt) { clearTimeout(timer); load(); } });
+
+syncForm();
+if(!token && !LOCKED) S.forceDrawer = true;
+load();
+})();
+</script>
+</body>
+</html>
