@@ -181,6 +181,23 @@ tr.ad .name{padding-left:44px}
 .pace i{display:block;height:100%;background:var(--s1)}
 .pace i.over{background:var(--warn)}
 .foot{font-size:12px;color:var(--ink-3);margin-top:10px;display:flex;gap:14px;flex-wrap:wrap}
+/* details panel */
+.dcamp{border-top:1px solid var(--line-2);padding-top:12px;margin-top:12px}
+.dcamp:first-child{border-top:0;padding-top:0;margin-top:0}
+.dcamp h4{font-family:var(--display);font-size:14px;margin:0 0 6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dset{background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:10px 12px;margin-top:8px}
+.dset h5{margin:0 0 6px;font-size:13px;font-weight:600}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:3px 12px;font-size:12.5px}
+.kv dt{color:var(--ink-2);font-weight:500}
+.kv dd{margin:0;word-break:break-word}
+@media (max-width:560px){.kv{grid-template-columns:1fr}.kv dt{margin-top:4px}}
+.dad{display:grid;grid-template-columns:96px 1fr;gap:12px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.dad img{width:96px;height:96px;object-fit:cover;border-radius:6px;background:var(--surface-2)}
+.dad .txt{font-size:12.5px;min-width:0}
+.dad .txt p{margin:0 0 4px;white-space:pre-wrap}
+.dad .txt .lbl{color:var(--ink-2);font-weight:500;font-size:11.5px}
+.raw{margin-top:6px;font-size:11.5px}
+.raw pre{font-family:var(--mono);font-size:11px;white-space:pre-wrap;word-break:break-all;background:var(--surface-2);padding:8px;border-radius:6px;max-height:260px;overflow:auto;margin:4px 0 0}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 </style>
@@ -377,6 +394,13 @@ tr.ad .name{padding-left:44px}
     <tbody id="tbody"></tbody>
   </table>
 </div>
+<div class="section-title">
+  <h2>รายละเอียดการตั้งค่า</h2>
+  <span class="sub">กลุ่มเป้าหมาย · ตำแหน่ง · ครีเอทีฟ · ข้อความ</span>
+  <span class="right"><button class="btn small" id="btnDetails">โหลดรายละเอียด</button></span>
+</div>
+<div class="panel" id="details"><div class="empty">กด "โหลดรายละเอียด" เพื่อดึงกลุ่มเป้าหมายและครีเอทีฟของแคมเปญที่ติดตาม (เรียก API 3 ครั้ง)</div></div>
+
 <div class="foot">
   <span id="footNote">ข้อมูลจาก Meta Marketing API · ตัวเลขของวันนี้อาจล่าช้าหลายนาทีตามระบบของ Meta</span>
 </div>
@@ -872,6 +896,97 @@ function row(e, level, open, actNum, nChildren){
   <td class="num">${I.impressions? money(I.cpm):'—'}</td>
   <td class="num">${I.frequency!=null&&I.impressions? dec(I.frequency):'—'}</td></tr>`;
 }
+
+/* ---------- setup details (targeting / creative), loaded on demand ---------- */
+const GENDER_TH = {1:'ชาย',2:'หญิง'};
+const PLATFORM_TH = {facebook:'Facebook', instagram:'Instagram', messenger:'Messenger', audience_network:'Audience Network', threads:'Threads'};
+function joinNames(arr){ return (arr||[]).map(x=> typeof x==='string'? x : (x.name||x.id||'')).filter(Boolean).join(', '); }
+function summarizeTargeting(t){
+  if(!t) return [['กลุ่มเป้าหมาย','—']];
+  const out = [];
+  const g = t.geo_locations||{};
+  const geo = [].concat((g.countries||[]).map(c=>c), (g.regions||[]).map(r=>r.name), (g.cities||[]).map(c=>c.name+(c.radius? ' +'+c.radius+c.distance_unit:'')), (g.custom_locations||[]).map(c=>'พิกัด '+c.latitude+','+c.longitude+' +'+c.radius+(c.distance_unit||'km')));
+  out.push(['พื้นที่', geo.join(', ') || '—' + (g.location_types? ' ('+g.location_types.join('/')+')':'')]);
+  if(t.excluded_geo_locations) out.push(['ยกเว้นพื้นที่', JSON.stringify(t.excluded_geo_locations)]);
+  out.push(['อายุ', (t.age_min||'?')+' – '+(t.age_max||'65+')]);
+  out.push(['เพศ', t.genders && t.genders.length ? t.genders.map(x=>GENDER_TH[x]||x).join(', ') : 'ทุกเพศ']);
+  const flex = (t.flexible_spec||[]).map(fs=> Object.entries(fs).map(([k,v])=>k+': '+joinNames(v)).join(' | ')).join(' ‖ ');
+  const ints = joinNames(t.interests), beh = joinNames(t.behaviors);
+  out.push(['ความสนใจ/พฤติกรรม', [ints, beh, flex].filter(Boolean).join(' · ') || 'ไม่ได้ระบุ (กว้าง)']);
+  if(t.custom_audiences) out.push(['กลุ่มเป้าหมายกำหนดเอง', joinNames(t.custom_audiences)]);
+  if(t.excluded_custom_audiences) out.push(['ยกเว้นกลุ่ม', joinNames(t.excluded_custom_audiences)]);
+  const ta = t.targeting_automation||{};
+  out.push(['Advantage+ audience', ta.advantage_audience===1 ? 'เปิด (Meta ขยายกลุ่มเอง)' : ta.advantage_audience===0 ? 'ปิด' : (t.targeting_optimization||'—')]);
+  const plats = (t.publisher_platforms||[]).map(p=>PLATFORM_TH[p]||p).join(', ');
+  out.push(['แพลตฟอร์ม', plats || 'อัตโนมัติ (Advantage+ placements)']);
+  const pos = [].concat((t.facebook_positions||[]).map(p=>'FB:'+p),(t.instagram_positions||[]).map(p=>'IG:'+p),(t.messenger_positions||[]).map(p=>'MSG:'+p),(t.audience_network_positions||[]).map(p=>'AN:'+p));
+  if(pos.length) out.push(['ตำแหน่ง', pos.join(', ')]);
+  if(t.device_platforms) out.push(['อุปกรณ์', t.device_platforms.join(', ')]);
+  if(t.locales) out.push(['ภาษา', t.locales.join(', ')]);
+  return out;
+}
+function creativeSummary(c){
+  if(!c) return {texts:[], img:null};
+  const oss = c.object_story_spec||{}; const ld = oss.link_data||{}, vd = oss.video_data||{}, pd = oss.photo_data||{};
+  const afs = c.asset_feed_spec||{};
+  const texts = [];
+  const primary = ld.message || vd.message || pd.caption || c.body || (afs.bodies||[]).map(b=>b.text).join('\n— หรือ —\n');
+  const headline = ld.name || vd.title || c.title || (afs.titles||[]).map(t=>t.text).join(' / ');
+  const desc = ld.description || (afs.descriptions||[]).map(d=>d.text).join(' / ');
+  const cta = (ld.call_to_action&&ld.call_to_action.type) || (vd.call_to_action&&vd.call_to_action.type) || c.call_to_action_type || (afs.call_to_action_types||[]).join('/');
+  if(primary) texts.push(['ข้อความหลัก', primary]);
+  if(headline) texts.push(['พาดหัว', headline]);
+  if(desc) texts.push(['คำอธิบาย', desc]);
+  if(cta) texts.push(['ปุ่ม CTA', cta]);
+  const media = vd.video_id ? 'วิดีโอ' : (afs.videos&&afs.videos.length? 'วิดีโอ (dynamic '+afs.videos.length+')' : (afs.images&&afs.images.length? 'รูปภาพ (dynamic '+afs.images.length+')' : (ld.picture||pd.image_hash||c.image_url? 'รูปภาพ' : (ld.child_attachments? 'คารูเซล '+ld.child_attachments.length+' การ์ด' : 'ไม่ทราบ'))));
+  texts.push(['สื่อ', media]);
+  if(ld.link) texts.push(['ลิงก์ปลายทาง', ld.link]);
+  if(c.effective_object_story_id) texts.push(['โพสต์', c.effective_object_story_id]);
+  return {texts, img: c.thumbnail_url || c.image_url || ld.picture || vd.image_url || null};
+}
+async function loadDetails(){
+  const el = $('#details');
+  if(!token || !DATA || DATA.demo){ el.innerHTML = '<div class="empty">ต้องเชื่อมต่อ token ก่อน</div>'; return; }
+  el.innerHTML = '<div class="empty"><span class="spin"></span> กำลังโหลดรายละเอียด…</div>';
+  try{
+    const cids = DATA.camps.map(c=>c.id), sids = DATA.sets.map(s=>s.id), aids = DATA.ads.map(a=>a.id);
+    const [cm, sm, am] = await Promise.all([
+      cids.length ? gfetch('', {ids:cids.join(','), fields:'id,name,objective,buying_type,bid_strategy,special_ad_categories,daily_budget,lifetime_budget,budget_remaining,start_time,stop_time,status'}) : {},
+      sids.length ? gfetch('', {ids:sids.join(','), fields:'id,name,campaign_id,targeting,optimization_goal,billing_event,bid_strategy,bid_amount,promoted_object,destination_type,start_time,end_time,daily_budget,lifetime_budget,pacing_type,attribution_spec,learning_stage_info,status'}) : {},
+      aids.length ? gfetch('', {ids:aids.join(','), fields:'id,name,adset_id,status,effective_status,creative{id,name,body,title,object_story_spec,asset_feed_spec,image_url,thumbnail_url,call_to_action_type,effective_object_story_id},preview_shareable_link'}) : {}
+    ]);
+    DATA.details = {cm, sm, am};
+    renderDetails();
+  }catch(e){ el.innerHTML = '<div class="empty">โหลดไม่สำเร็จ: '+esc(e.message)+'</div>'; }
+}
+function kv(pairs){ return '<dl class="kv">'+pairs.map(p=>`<dt>${esc(p[0])}</dt><dd>${esc(p[1])}</dd>`).join('')+'</dl>'; }
+function renderDetails(){
+  const D = DATA.details; if(!D) return;
+  const el = $('#details'); let html = '';
+  for(const c of DATA.camps){
+    const cd = D.cm[c.id]||{};
+    html += `<div class="dcamp"><h4>${esc(c.name)} <span class="chip ${(STATUS_TH[c.display]||['',''])[1]}">${esc((STATUS_TH[c.display]||[c.display])[0])}</span></h4>`;
+    html += kv([['วัตถุประสงค์', cd.objective||'—'], ['กลยุทธ์ประมูล', cd.bid_strategy||'—'], ['งบ', cd.daily_budget? money(+cd.daily_budget/100)+'/วัน' : cd.lifetime_budget? money(+cd.lifetime_budget/100)+' รวม' : 'งบระดับชุดโฆษณา'], ['ประเภทซื้อ', cd.buying_type||'—'], ['หมวดพิเศษ', (cd.special_ad_categories||[]).join(', ')||'ไม่มี'], ['เริ่ม–สิ้นสุด', (cd.start_time? fmtDT(Date.parse(cd.start_time)) : '—')+' → '+(cd.stop_time? fmtDT(Date.parse(cd.stop_time)) : 'ไม่กำหนด')]]);
+    for(const s of c.children){
+      const sd = D.sm[s.id]||{};
+      html += `<div class="dset"><h5>ชุดโฆษณา: ${esc(s.name)}</h5>`;
+      const po = sd.promoted_object||{};
+      html += kv([['เป้าหมายการปรับให้เหมาะสม', sd.optimization_goal||'—'], ['เรียกเก็บตาม', sd.billing_event||'—'], ['ปลายทาง', (sd.destination_type||'—')+(po.page_id? ' · เพจ '+po.page_id:'')+(po.pixel_id? ' · pixel '+po.pixel_id:'')], ['งบชุดโฆษณา', sd.daily_budget? money(+sd.daily_budget/100)+'/วัน' : sd.lifetime_budget? money(+sd.lifetime_budget/100)+' รวม' : 'ใช้งบแคมเปญ'], ['ประมูล', (sd.bid_strategy||'—')+(sd.bid_amount? ' · '+money(+sd.bid_amount/100):'')], ['กำหนดเวลา', (sd.start_time? fmtDT(Date.parse(sd.start_time)) : '—')+' → '+(sd.end_time? fmtDT(Date.parse(sd.end_time)) : 'ไม่กำหนด')], ['การระบุที่มา', (sd.attribution_spec||[]).map(a=>a.event_type+' '+a.window_days+'d').join(', ')||'—']].concat(summarizeTargeting(sd.targeting)));
+      html += `<details class="raw"><summary>targeting ดิบ (JSON)</summary><pre>${esc(JSON.stringify(sd.targeting||{}, null, 1))}</pre></details>`;
+      for(const a of s.children){
+        const ad = D.am[a.id]||{}; const cs = creativeSummary(ad.creative);
+        html += `<div class="dad">${cs.img? `<img src="${esc(cs.img)}" alt="">` : '<div></div>'}<div class="txt"><p><b>${esc(a.name)}</b> <span class="chip ${(STATUS_TH[a.display]||['',''])[1]}">${esc((STATUS_TH[a.display]||[a.display])[0])}</span></p>`;
+        for(const t of cs.texts) html += `<p><span class="lbl">${esc(t[0])}:</span> ${esc(t[1])}</p>`;
+        if(ad.preview_shareable_link) html += `<p><a href="${esc(ad.preview_shareable_link)}" target="_blank" rel="noopener">ดูตัวอย่างโฆษณา</a></p>`;
+        html += '</div></div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  el.innerHTML = html || '<div class="empty">ไม่มีรายการ</div>';
+}
+$('#btnDetails').addEventListener('click', loadDetails);
 
 /* ---------- banners / live ---------- */
 function banner(id, cls, title, msg){
